@@ -9,7 +9,7 @@ def cluster_train(data, k=30) :
     model.fit(data)
     joblib.dump(model, '../models/cluster.pt')
     
-def get_state(sMSE, sFFT, sNet):
+def cluster_pred(sMSE, sFFT, sNet):
     env = [sMSE, sFFT, sNet]
     model = joblib.load("../models/cluster.pt")
     s = model.predict(env)
