@@ -4,6 +4,10 @@ it uses replay buffers because we using offline-learning.
 """
 import collections
 import random
+import cv2
+from utils.get_state import cluster_pred
+import utils.cal_quality
+import utils.yolov5.detect
 
 random.seed(42)
 class ReplayBuffer():
@@ -21,18 +25,29 @@ class ReplayBuffer():
         return len(self.buffer)
     
 class FrameEnv():
-    def __init__(self, fps=30, alpha=0.7, beta=10, w=5):
+    def __init__(self, videoPath, fps=30, alpha=0.7, beta=10, w=5):
+        self.videoPath = videoPath
         self.fps = fps
+        # hyper-parameter
         self.alpha = alpha
         self.beta = beta
         self.w = w
-        self.actionSpace = list(range(fps+1)) # 0 to fps
+        # state
+        self.reset()
+        # self.state = clueter_pred()
         
-    def reset(self) : 
-        return
-    
+    def reset(self) :
+        self.cap = cv2.VideoCapture(self.videoPath)
+        _, self.prev_frame = self.cap.read()
+        _, self.frame = self.cap.read()
+        
     def step(self, action) :
-        return
+        for _ in range(action-1) :
+            self.cap.read()
+        _, self.prev_frame = self.cap.read()
+        ret, self.frame = self.cap.read()
+        # self.state = cluster_pred()
+        return self.state
     
     def get_reward(self) :
         return
