@@ -28,6 +28,6 @@ class Agent():
     def Q_update(self):
         return
 
-    def decrese_eps(self):
+    def decrease_eps(self):
         self.eps -= 0.01
         self.eps = max(self.eps, 0.1)
