@@ -4,7 +4,6 @@ action : skip-length
 """
 import numpy as np
 import random
-from enviroment import FrameEnv
 
 random.seed(42)
 
