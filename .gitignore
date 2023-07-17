@@ -1,3 +1,4 @@
 logs/*
 utils/yolov5
 utils/__pycache__
+data/*

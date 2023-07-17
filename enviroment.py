@@ -29,7 +29,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoPath, buffer_size=10000, fps=30, alpha=0.7, beta=10, w=5):
+    def __init__(self, videoPath, buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5):
         self.buffer = ReplayBuffer(buffer_size)
         self.videoPath = videoPath
         self.fps = fps
@@ -37,11 +37,9 @@ class FrameEnv():
         self.alpha = alpha
         self.beta = beta
         self.w = w
+        self.model = cluster_load()
         # state
         self.reset()
-        self.model = cluster_load()
-        self.state = cluster_pred(
-            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
 
     def reset(self):
         self.transList = []
@@ -55,13 +53,18 @@ class FrameEnv():
         self.processList = [f1, f2]
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
+        self.state = cluster_pred(
+            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
+        return self.state
 
     def step(self, action, newA):
         # skipping
         guided = False
         duplicated = False
         for a in range(action+1):
-            _, temp = self.cap.read()
+            ret, temp = self.cap.read()
+            if not ret:
+                return self.state, True
             if len(self.frameList) >= self.fps:
                 guided = True
                 duplicated = self._triggered_by_guide(newA, temp, action, a)
@@ -80,7 +83,7 @@ class FrameEnv():
             self.state = cluster_pred(
                 get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
 
-        return self.state
+        return self.state, False
 
     def _triggered_by_guide(self, newA, temp, action, a):
         # subTask 1
