@@ -5,7 +5,7 @@ it uses replay buffers because we using offline-learning.
 import collections
 import random
 import cv2
-from utils.get_state import cluster_pred
+from utils.get_state import cluster_pred, cluster_load
 from utils.cal_quality import get_FFT, get_MSE
 import utils.yolov5.detect
 
@@ -37,8 +37,9 @@ class FrameEnv():
         self.w = w
         # state
         self.reset()
+        self.model = cluster_load()
         self.state = cluster_pred(
-            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net)
+            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
 
     def reset(self):
         self.cap = cv2.VideoCapture(self.videoPath)
@@ -58,7 +59,7 @@ class FrameEnv():
         else:
             self.net = max(self.net - action, 0)
         self.state = cluster_pred(
-            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net)
+            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
         return self.state
 
     def get_reward(self):
