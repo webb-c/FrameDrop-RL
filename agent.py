@@ -10,22 +10,26 @@ random.seed(42)
 
 
 class Agent():
-    def __init__(self, eps=0.9, fps=30):
+    def __init__(self, eps=1, fps=30, lr=0.1, gamma=0.9):
         self.eps = eps
-        self.Qtable = np.zeros((30, 30))  # s, a
-        self.actionSpace = list(range(fps+1))  # 0 to fps
+        self.lr = lr
+        self.gamma = gamma
+        self.qTable = np.zeros((30, 30))  # s, a
+        self.actionSpace = list(range(fps))  # 0 to fps-1
 
     def get_action(self, s):
-        s1, s2 = s
         p = random.random()
         if p < self.eps:  # exploration
             action = random.sample(self.actionSpace, 1)
         else:  # exploitation
-            Qvalue = self.Qtable[s1, s2, :]
-            action = np.argmax(Qvalue)
+            qValue = self.qTable[s, :]
+            action = np.argmax(qValue)
         return action
 
-    def Q_update(self):
+    def Q_update(self, trans):
+        s, a, s_prime, r = trans
+        self.qTable[s, a] = self.qTable[s, a] + self.lr * \
+            (r + np.max(self.qTable[s_prime, :]) - self.qTable[s, a])
         return
 
     def decrease_eps(self):
