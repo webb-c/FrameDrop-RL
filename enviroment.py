@@ -8,7 +8,7 @@ import cv2
 import win32pipe, win32file
 from utils.get_state import cluster_pred, cluster_load
 from utils.cal_quality import get_FFT, get_MSE
-import utils.yolov5.detect
+from utils.yolov5.detect import inference
 
 random.seed(42)
 
@@ -52,7 +52,7 @@ class FrameEnv():
         _, f1 = self.cap.read()
         _, f2 = self.cap.read()
         self.frameList = [f1, f2]
-        self.processList = [f1, f2]
+        self.processList = [f2]
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
         self.net = self._get_sNet()
@@ -128,7 +128,11 @@ class FrameEnv():
     
     def _get_sNet(self):
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
-
+    
+    def _detect(self):
+        command = ["--weights", "yolov5s6.pt", "--source", "../../data/test.mp4", "--save-txt", "--save_conf", "--nosave"]
+        inference(command)
+        
     def _get_reward(self):
         length = len(self.transList)
         for i in range(length):
