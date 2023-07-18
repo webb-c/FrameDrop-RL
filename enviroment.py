@@ -5,6 +5,7 @@ it uses replay buffers because we using offline-learning.
 import collections
 import random
 import cv2
+import win32pipe, win32file
 from utils.get_state import cluster_pred, cluster_load
 from utils.cal_quality import get_FFT, get_MSE
 import utils.yolov5.detect
@@ -31,6 +32,7 @@ class ReplayBuffer():
 class FrameEnv():
     def __init__(self, videoPath, buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5):
         self.buffer = ReplayBuffer(buffer_size)
+        self.omnet = Communicator()
         self.videoPath = videoPath
         self.fps = fps
         # hyper-parameter
@@ -44,6 +46,7 @@ class FrameEnv():
     def reset(self):
         self.transList = []
         self.cap = cv2.VideoCapture(self.videoPath)
+        self.omnet.init_pipe()
         self.prevA = self.fps
         self.targetA = self.fps
         _, f1 = self.cap.read()
@@ -57,7 +60,7 @@ class FrameEnv():
             get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
         return self.state
 
-    def step(self, action, newA):
+    def step(self, action):
         # skipping
         guided = False
         start = False
@@ -68,7 +71,9 @@ class FrameEnv():
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
                 guided = True
+                newA = self.omnet.get_omnet_message() # request : pipe return A(t) -> wait OMNET
                 start = self._triggered_by_guide(newA, temp, action, a)
+                self.omnet.send_ommnet_message()            # request : wake up OMNet
             else:
                 self.frameList.append(temp)
 
@@ -131,3 +136,41 @@ class FrameEnv():
             # request addition (YOLO -> self.frameList detect)
             self.transList[i].append(r)
         return
+
+class Communicator(Exception):
+    def __init__(self, pipeName, buffer_size):
+        self.pipeName = pipeName
+        self.buffer_size = buffer_size
+        self.pipe = self.init_pipe(self.pipe_name, self.buffer_size)
+
+    def send_omnet_message(self, msg):
+        win32file.WriteFile(self.pipe, msg.encode('utf-8'))  # wait unil complete reward cal & a(t)
+        
+    def get_omnet_message(self):
+        response_byte = win32file.ReadFile(self.pipe, self.buffer_size)
+        response_str = response_byte[1].decode('utf-8')
+        return response_str
+
+    def close_pipe(self):
+        win32file.CloseHandle(self.pipe)
+
+    def init_pipe(self, pipe_name, buffer_size):
+        pipe = None
+        try:
+            pipe = win32pipe.CreateNamedPipe(
+                pipe_name,
+                win32pipe.PIPE_ACCESS_DUPLEX,
+                win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
+                1,
+                buffer_size,
+                buffer_size,
+                0,
+                None
+            )
+        except:
+            print("except : pipe error")
+            return -1
+
+        win32pipe.ConnectNamedPipe(pipe, None)
+
+        return pipe

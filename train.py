@@ -13,6 +13,7 @@ def _main():
     for epi in range(10000):           # request : how decide episode?
         done = False
         s = envV.reset()
+        envV.omnet.init_pipe()         # request : add arg
         while not done:
             a = agentV.get_action(s)
             s, done = envV.step(a)
