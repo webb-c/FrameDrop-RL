@@ -131,9 +131,10 @@ class FrameEnv():
     def _get_sNet(self):
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
     
-    def _detect(self):
+    def _detect(self, exist=False):
         command = ["--weights", "models/yolov5s6.pt", "--source", self.videoPath, "--save-txt", "--save-conf", "--nosave"]
-        inference(command) # cls, *xywh, conf
+        if not exist : 
+            inference(command) # cls, *xywh, conf
         self.resultPath = "utils/yolov5/runs/detect/exp/labels"
         fileList =  os.listdir(self.resultPath)
         self.objNumList = []  # 물체개수
@@ -145,10 +146,29 @@ class FrameEnv():
         
     def _get_reward(self):
         length = len(self.transList)
+        # get importance
+        self.iList = []
+        for f in range(self.fps) :
+            sIdx = max(0, f-self.w)
+            eIdx = max(self.fps, f+self.w+1)
+            maxNum = max(self.objNumList[sIdx:eIdx])
+            inv_importance = (1 - self.objNumList[i] / maxNum) if maxNum != 0 else 0
+            self.iList.append(inv_importance)
+        del self.objNumList[:self.fps] # remove already using
+        A_diff = self.targetA - self.prevA
+        idx = 0
         for i in range(length):
             s, a = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
+            r_blur = sum(self.iList[idx:idx+a+1]) / a
+            # r_dup = 
+            if A_diff >= 0 :
+                r_net = (a/self.fps)*(A_diff)
+            else :
+                r_net = self.beta * ((self.fps - a) / self.fps) * (A_diff)
+            r = (1 - self.alpha) * (r_blur - r_dup) + self.alpha * (r_net)
             self.transList[i].append(r)
+            idx += a+1
         return
 
 class Communicator(Exception):
