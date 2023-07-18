@@ -33,21 +33,21 @@ class ReplayBuffer():
 class FrameEnv():
     def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5):
         self.buffer = ReplayBuffer(buffer_size)
-        self.omnet = Communicator()
+        # self.omnet = Communicator()
         self.videoPath = videoPath
         self.fps = fps
         # hyper-parameter
         self.alpha = alpha
         self.beta = beta
         self.w = w
-        self.model = cluster_load()
+        # self.model = cluster_load()
         # state
         self.reset()
 
     def reset(self):
         self.transList = []
         self.cap = cv2.VideoCapture(self.videoPath)
-        self.omnet.init_pipe()
+        # self.omnet.init_pipe()
         self.prevA = self.fps
         self.targetA = self.fps
         _, f1 = self.cap.read()
@@ -57,10 +57,10 @@ class FrameEnv():
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
         self.net = self._get_sNet()
-        self.state = cluster_pred(
-            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
+        # self.state = cluster_pred(
+        #    get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
         self._detect()
-        return self.state
+        #return self.state
 
     def step(self, action):
         # skipping
@@ -132,9 +132,9 @@ class FrameEnv():
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
     
     def _detect(self):
-        command = ["--weights", "yolov5s6.pt", "--source", "../../"+self.videoPath, "--save-txt", "--save_conf", "--nosave"]
+        command = ["--weights", "models/yolov5s6.pt", "--source", self.videoPath, "--save-txt", "--save-conf", "--nosave"]
         inference(command) # cls, *xywh, conf
-        dirPath = "utils/runs/detect/exp"
+        dirPath = "utils/yolov5/runs/detect/exp/labels"
         fileList =  os.listdir(dirPath)
         objNumList = []
         for fileName in fileList :
@@ -192,4 +192,3 @@ class Communicator(Exception):
 
 # test
 env = FrameEnv()
-env._detect()
