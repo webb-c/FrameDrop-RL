@@ -60,56 +60,71 @@ class FrameEnv():
     def step(self, action, newA):
         # skipping
         guided = False
-        duplicated = False
         for a in range(action+1):
             ret, temp = self.cap.read()
             if not ret:
-                return self.state, True
+                return _, True
             if len(self.frameList) >= self.fps:
                 guided = True
-                duplicated = self._triggered_by_guide(newA, temp, action, a)
+                # call OMNeT++
+                self._triggered_by_guide(newA, temp, action, a)
             else:
                 self.frameList.append(temp)
 
-        self.prev_frame = self.frameList[-2]
-        self.frame = self.frameList[-1]
-
         if not guided:
-            self.net = max(self.net - action, 0)
-            self.transList.append((self.state, action))
-
-        if not duplicated:
+            self.prev_frame = self.frameList[-2]
+            self.frame = self.frameList[-1]
             self.processList.append(self.frame)
-            self.state = cluster_pred(
-                get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
+            # prev_trans append s_prime
+            if len(self.transList) > 0 :
+                self.transList[-1].append(self.state)
+            # curr_trans (s, a)
+            self.transList.append((self.state, action))
+            # new_state (curr_trans s_prime)
+            self.net = max(self.net - action, 0)
+            
+        self.state = cluster_pred(
+            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
 
         return self.state, False
 
     def _triggered_by_guide(self, newA, temp, action, a):
         # subTask 1
+        # prev_trans append s_prime
+        if len(self.transList) > 0 :
+            self.transList[-1].append(self.state)
+        # curr_trans (s, a)
         self.transList.append((self.state, a))
+        # new state (curr_trans s_prime)
+        self.frameList = [self.frameList[-1], temp]
+        self.processList = [temp]
+        self.prev_frame = self.frameList[-2]
+        self.frame = self.frameList[-1]
+        self.net = max(self.fps - self.targetA, 0)
+        self.state = cluster_pred(
+            get_MSE(self.frameList[-2], self.frameList[-1]), get_FFT(self.frameList[-1]), self.net, self.model)
+        # curr_trans append s_prime
+        self.transList[-1].append(self.state)
+        # reward
         self._get_reward()
         self.buffer.put(self.transList)
         # init
         self.transList = []
         self.prevA = self.targetA
-        self.targetA = newA   # OMNeT ++
-        self.net = max(self.fps - self.targetA, 0)
-        self.frameList = [self.frameList[-1], temp]
-        self.processList = [temp]
+        self.targetA = newA
         # subTask 2
         na = action-a-1
-        self.state = cluster_pred(
-            get_MSE(self.frameList[-2], self.frameList[-1]), get_FFT(self.frameList[-1]), self.net, self.model)
         if na >= 0:
+            # curr_trans (s, a)
             self.transList = [(self.state, na)]
+            # new  network state
             self.net = max(self.fps - self.targetA - na, 0)
-            return False
-        return True
+        return
 
     def _get_reward(self):
         length = len(self.transList)
         for i in range(length):
             s, a = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
+            self.transList[i].append(r)
         return
