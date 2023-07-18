@@ -5,6 +5,7 @@ it uses replay buffers because we using offline-learning.
 import collections
 import random
 import cv2
+import os
 import win32pipe, win32file
 from utils.get_state import cluster_pred, cluster_load
 from utils.cal_quality import get_FFT, get_MSE
@@ -30,7 +31,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoPath, buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5):
+    def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5):
         self.buffer = ReplayBuffer(buffer_size)
         self.omnet = Communicator()
         self.videoPath = videoPath
@@ -58,6 +59,7 @@ class FrameEnv():
         self.net = self._get_sNet()
         self.state = cluster_pred(
             get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
+        self._detect()
         return self.state
 
     def step(self, action):
@@ -130,8 +132,17 @@ class FrameEnv():
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
     
     def _detect(self):
-        command = ["--weights", "yolov5s6.pt", "--source", "../../data/test.mp4", "--save-txt", "--save_conf", "--nosave"]
-        inference(command)
+        command = ["--weights", "yolov5s6.pt", "--source", "../../"+self.videoPath, "--save-txt", "--save_conf", "--nosave"]
+        inference(command) # cls, *xywh, conf
+        dirPath = "utils/runs/detect/exp"
+        fileList =  os.listdir(dirPath)
+        objNumList = []
+        for fileName in fileList :
+            filePath = dirPath+"/"+fileName
+            with open(filePath, 'r') as file :
+                lines = file.readlines()
+                objNumList.append(len(lines))
+        print(objNumList)
         
     def _get_reward(self):
         length = len(self.transList)
@@ -178,3 +189,7 @@ class Communicator(Exception):
         win32pipe.ConnectNamedPipe(pipe, None)
 
         return pipe
+
+# test
+env = FrameEnv()
+env._detect()
