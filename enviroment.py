@@ -46,13 +46,13 @@ class FrameEnv():
         self.cap = cv2.VideoCapture(self.videoPath)
         self.prevA = self.fps
         self.targetA = self.fps
-        self.net = 0
         _, f1 = self.cap.read()
         _, f2 = self.cap.read()
         self.frameList = [f1, f2]
         self.processList = [f1, f2]
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
+        self.net = self._get_sNet()
         self.state = cluster_pred(
             get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
         return self.state
@@ -60,29 +60,31 @@ class FrameEnv():
     def step(self, action, newA):
         # skipping
         guided = False
+        start = False
         for a in range(action+1):
             ret, temp = self.cap.read()
             if not ret:
                 return _, True
             if len(self.frameList) >= self.fps:
-                guided = True
                 # call OMNeT++
-                self._triggered_by_guide(newA, temp, action, a)
+                guided = True
+                start = self._triggered_by_guide(newA, temp, action, a)
             else:
                 self.frameList.append(temp)
 
-        if not guided:
+        if not start : 
             self.prev_frame = self.frameList[-2]
             self.frame = self.frameList[-1]
             self.processList.append(self.frame)
+        
+        if not guided:
             # prev_trans append s_prime
             if len(self.transList) > 0 :
                 self.transList[-1].append(self.state)
             # curr_trans (s, a)
             self.transList.append((self.state, action))
-            # new_state (curr_trans s_prime)
-            self.net = max(self.net - action, 0)
-            
+        
+        self.net = self._get_sNet()
         self.state = cluster_pred(
             get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
 
@@ -100,7 +102,9 @@ class FrameEnv():
         self.frame = temp
         self.frameList = [self.frame]
         self.processList = [self.frame]
-        self.net = max(self.fps - self.targetA, 0)
+        self.prevA = self.targetA
+        self.targetA = newA
+        self.net = self._get_sNet()
         self.state = cluster_pred(
             get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
         # curr_trans append s_prime
@@ -108,18 +112,17 @@ class FrameEnv():
         # reward
         self._get_reward()
         self.buffer.put(self.transList)
-        # init
         self.transList = []
-        self.prevA = self.targetA
-        self.targetA = newA
         # subTask 2
         na = action-a-1
         if na >= 0:
             # curr_trans (s, a)
             self.transList = [(self.state, na)]
-            # new  network state
-            self.net = max(self.fps - self.targetA - na, 0)
-        return
+            return False
+        return True
+    
+    def _get_sNet(self):
+        return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
 
     def _get_reward(self):
         length = len(self.transList)
