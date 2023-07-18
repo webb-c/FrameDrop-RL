@@ -134,11 +134,11 @@ class FrameEnv():
     def _detect(self):
         command = ["--weights", "models/yolov5s6.pt", "--source", self.videoPath, "--save-txt", "--save-conf", "--nosave"]
         inference(command) # cls, *xywh, conf
-        dirPath = "utils/yolov5/runs/detect/exp/labels"
-        fileList =  os.listdir(dirPath)
+        self.resultPath = "utils/yolov5/runs/detect/exp/labels"
+        fileList =  os.listdir(self.resultPath)
         self.objNumList = []  # 물체개수
         for fileName in fileList :
-            filePath = dirPath+"/"+fileName
+            filePath = self.resultPath+"/"+fileName
             with open(filePath, 'r') as file :
                 lines = file.readlines()
                 self.objNumList.append(len(lines))
