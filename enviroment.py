@@ -9,6 +9,7 @@ import os
 import win32pipe, win32file
 from utils.get_state import cluster_pred, cluster_load
 from utils.cal_quality import get_FFT, get_MSE
+from utils.cal_F1 import get_F1
 from utils.yolov5.detect import inference
 
 random.seed(42)
@@ -158,7 +159,7 @@ class FrameEnv():
         A_diff = self.targetA - self.prevA
         idx = 0
         for i in range(length):
-            s, a = self.transList[i]
+            s, a, s_prime = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
             r_blur = sum(self.iList[idx:idx+a+1]) / a
             # r_dup = 
