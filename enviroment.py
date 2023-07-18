@@ -49,6 +49,7 @@ class FrameEnv():
     def reset(self):
         self.transList = []
         self.cap = cv2.VideoCapture(self.videoPath)
+        self.idx = 0
         self.omnet.init_pipe()
         self.prevA = self.fps
         self.targetA = self.fps
@@ -157,19 +158,23 @@ class FrameEnv():
             self.iList.append(inv_importance)
         del self.objNumList[:self.fps] # remove already using
         A_diff = self.targetA - self.prevA
-        idx = 0
         for i in range(length):
             s, a, s_prime = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
-            r_blur = sum(self.iList[idx:idx+a+1]) / a
-            # r_dup = 
+            r_blur = sum(self.iList[self.idx:self.idx+a+1]) / a
+            self.F1List = []
+            refFrame = self.resultPath+"/test_"+str(self.idx+1)+".txt"
+            for k in range(1, a+1) :
+                skipFrame = self.resultPath+"/test_"+str(self.idx+k+1)+".txt"
+                self.F1List.append(1 - get_F1(refFrame, skipFrame))
+            r_dup = sum(self.F1List)
             if A_diff >= 0 :
                 r_net = (a/self.fps)*(A_diff)
             else :
                 r_net = self.beta * ((self.fps - a) / self.fps) * (A_diff)
             r = (1 - self.alpha) * (r_blur - r_dup) + self.alpha * (r_net)
             self.transList[i].append(r)
-            idx += a+1
+            self.idx += a+1
         return
 
 class Communicator(Exception):
