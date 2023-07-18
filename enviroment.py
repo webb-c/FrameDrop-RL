@@ -96,13 +96,13 @@ class FrameEnv():
         # curr_trans (s, a)
         self.transList.append((self.state, a))
         # new state (curr_trans s_prime)
-        self.frameList = [self.frameList[-1], temp]
-        self.processList = [temp]
-        self.prev_frame = self.frameList[-2]
-        self.frame = self.frameList[-1]
+        self.prev_frame = self.frameList[-1]
+        self.frame = temp
+        self.frameList = [self.frame]
+        self.processList = [self.frame]
         self.net = max(self.fps - self.targetA, 0)
         self.state = cluster_pred(
-            get_MSE(self.frameList[-2], self.frameList[-1]), get_FFT(self.frameList[-1]), self.net, self.model)
+            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
         # curr_trans append s_prime
         self.transList[-1].append(self.state)
         # reward
