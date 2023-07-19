@@ -1,4 +1,4 @@
-logs/*
+results/logs/*
 utils/yolov5/*
 !utils/yolov5/detect.py
 utils/__pycache__
