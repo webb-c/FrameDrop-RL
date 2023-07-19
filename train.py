@@ -15,7 +15,6 @@ def _main():
     for epi in range(10000):           # request : how decide episode?
         done = False
         s = envV.reset(isClusterexist)
-        envV.omnet.init_pipe()         # request : add arg
         while not done:
             a = agentV.get_action(s)
             s, done = envV.step(a)
@@ -29,6 +28,7 @@ def _main():
             isClusterexist = True
         if isClusterexist :
             agentV.decrease_eps()
+        envV.omnet.send_omnet_message("finish") 
     return agentV.get_q_table()
 
 def _save_q_table(qTable, filePath="models/q_table") :

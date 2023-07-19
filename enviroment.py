@@ -6,6 +6,7 @@ import collections
 import random
 import cv2
 import os
+import math
 import win32pipe, win32file
 from utils.get_state import cluster_pred, cluster_load, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
@@ -36,7 +37,7 @@ class FrameEnv():
         isClusterexist
         self.buffer = ReplayBuffer(buffer_size)
         self.data = collections.deque(maxlen=1000)
-        self.omnet = Communicator()
+        self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
         self.videoPath = videoPath
         self.fps = fps
         # hyper-parameter
@@ -54,7 +55,6 @@ class FrameEnv():
         self.isClusterexist = isClusterexist
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
-        self.omnet.init_pipe()
         self.prevA = self.fps
         self.targetA = self.fps
         _, f1 = self.cap.read()
@@ -78,13 +78,14 @@ class FrameEnv():
         for a in range(action+1):
             ret, temp = self.cap.read()
             if not ret:
-                return _, True
+                return -1, True
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
                 guided = True
-                newA = self.omnet.get_omnet_message()        # request : pipe return A(t) -> wait OMNET
+                self.omnet.send_omnet_message("reward") 
+                ratioA = self.omnet.get_omnet_message()    # requset : waiting ?
+                newA = math.floor(ratioA*(self.fps))
                 start = self._triggered_by_guide(newA, temp, action, a)
-                self.omnet.send_ommnet_message()            # request : wake up OMNet
             else:
                 self.frameList.append(temp)
 
@@ -100,6 +101,8 @@ class FrameEnv():
                     self.transList[-1].append(self.state)
                 # curr_trans (s, a)
                 self.transList.append((self.state, action))
+            self.omnet.send_omnet_message("action")
+            self.omnet.send_omnet_message(action/self.fps)
             self.data.append(self.originState)
         
         self.net = self._get_sNet()
@@ -116,6 +119,8 @@ class FrameEnv():
                 self.transList[-1].append(self.state)  
             # curr_trans (s, a)
             self.transList.append((self.state, a))
+        self.omnet.send_omnet_message("action")
+        self.omnet.send_omnet_message(a/self.fps)
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
         self.prev_frame = self.frameList[-1]
@@ -140,6 +145,8 @@ class FrameEnv():
             # curr_trans (s, a)
             if self.isClusterexist : 
                 self.transList = [(self.state, na)]
+            self.omnet.send_omnet_message("action")
+            self.omnet.send_omnet_message(na/self.fps)
             return False
         return True
     
@@ -194,7 +201,7 @@ class Communicator(Exception):
     def __init__(self, pipeName, buffer_size):
         self.pipeName = pipeName
         self.buffer_size = buffer_size
-        self.pipe = self.init_pipe(self.pipe_name, self.buffer_size)
+        self.pipe = self.init_pipe(self.pipeName, self.buffer_size)
 
     def send_omnet_message(self, msg):
         win32file.WriteFile(self.pipe, msg.encode('utf-8'))  # wait unil complete reward cal & a(t)
@@ -207,11 +214,11 @@ class Communicator(Exception):
     def close_pipe(self):
         win32file.CloseHandle(self.pipe)
 
-    def init_pipe(self, pipe_name, buffer_size):
+    def init_pipe(self, pipeName, buffer_size):
         pipe = None
         try:
             pipe = win32pipe.CreateNamedPipe(
-                pipe_name,
+                pipeName,
                 win32pipe.PIPE_ACCESS_DUPLEX,
                 win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
                 1,
