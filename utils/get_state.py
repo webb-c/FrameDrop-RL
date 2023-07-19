@@ -4,7 +4,6 @@ clustering for 3-dimension continuous state to (10,3) discrete state
 import joblib
 from sklearn.cluster import KMeans
 
-
 def cluster_train(data, k=30):
     train_model = KMeans(n_cluster=k)  # else : MiniBatchKMeans
     train_model.fit(data)

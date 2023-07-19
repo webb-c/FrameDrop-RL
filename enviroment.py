@@ -7,7 +7,8 @@ import random
 import cv2
 import os
 import win32pipe, win32file
-from utils.get_state import cluster_pred, cluster_load
+from agent import Agent
+from utils.get_state import cluster_pred, cluster_load, cluster_train
 from utils.cal_quality import get_FFT, get_MSE
 from utils.cal_F1 import get_F1
 from utils.yolov5.detect import inference
@@ -32,7 +33,8 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5):
+    def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5, isClusterReady=True):
+        self.isClusterReady = isClusterReady
         self.buffer = ReplayBuffer(buffer_size)
         self.omnet = Communicator()
         self.videoPath = videoPath
@@ -41,13 +43,13 @@ class FrameEnv():
         self.alpha = alpha
         self.beta = beta
         self.w = w
-        self.model = cluster_load()
-        self._detect()
+        if self.isClusterReady :  
+            self.model = cluster_load()
+            self._detect()
         # state
         self.reset()
 
     def reset(self):
-        self.transList = []
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
         self.omnet.init_pipe()
@@ -60,8 +62,12 @@ class FrameEnv():
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
         self.net = self._get_sNet()
-        self.state = cluster_pred(
+        if self.isClusterReady :
+            self.transList = []
+            self.state = cluster_pred(
             get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
+        else :
+            self.state = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
         return self.state
 
     def step(self, action):
@@ -76,7 +82,11 @@ class FrameEnv():
                 # call OMNeT++
                 guided = True
                 newA = self.omnet.get_omnet_message() # request : pipe return A(t) -> wait OMNET
-                start = self._triggered_by_guide(newA, temp, action, a)
+                if self.isClusterReady :
+                    start = self._triggered_by_guide(newA, temp, action, a)
+                else :
+                    self.prevA = self.targetA
+                    self.targetA = newA
                 self.omnet.send_ommnet_message()            # request : wake up OMNet
             else:
                 self.frameList.append(temp)
@@ -88,15 +98,19 @@ class FrameEnv():
         
         if not guided:
             # prev_trans append s_prime
-            if len(self.transList) > 0 :
-                self.transList[-1].append(self.state)
-            # curr_trans (s, a)
-            self.transList.append((self.state, action))
+            if self.isClusterReady :
+                if len(self.transList) > 0 :
+                    self.transList[-1].append(self.state)
+                # curr_trans (s, a)
+                self.transList.append((self.state, action))
         
         self.net = self._get_sNet()
-        self.state = cluster_pred(
-            get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
-
+        
+        if self.isClusterReady :
+            self.state = cluster_pred(
+                get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model)
+        else :
+            self.state = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net, self.model]
         return self.state, False
 
     def _triggered_by_guide(self, newA, temp, action, a):
@@ -215,5 +229,25 @@ class Communicator(Exception):
 
         return pipe
 
+def training_cluster():
+    envV = FrameEnv(isClusterReady=False)
+    agentV = Agent()
+    data = []
+    for epi in range(1000):
+        done = False
+        s = envV.reset()
+        data.append(s)
+        envV.omnet.init_pipe()
+        while not done:
+            a = agentV.get_action(s)
+            s, done = envV.step(a)
+            data.append(s)
+    cluster_train(data)
+    return 
+
 # test
-env = FrameEnv()
+def main():
+    env = FrameEnv()
+    
+if __name__ == "__main__" :
+    training_cluster()
