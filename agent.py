@@ -22,10 +22,11 @@ class Agent():
     def get_action(self, s):
         p = random.random()
         if p < self.eps:  # exploration
-            action = random.sample(self.actionSpace, 1)
+            action = random.choice(self.actionSpace)
         else:  # exploitation
             qValue = self.qTable[s, :]
             action = np.argmax(qValue)
+        print(action)
         return action
 
     def Q_update(self, trans):
