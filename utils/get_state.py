@@ -25,7 +25,7 @@ def get_state_distriburtion(data) :
     ax.set_zlabel('state : network')
     ax.legend()
     # plt.show()
-    plt.savefig('../results/cluster.png')
+    plt.savefig('results/cluster.png')
 
     
 def cluster_train(data, k=30):
@@ -45,7 +45,5 @@ def cluster_pred(sMSE, sFFT, sNet, model):
     return s
 
 if __name__ == "__main__":
-    data = [
-        [1, -1, 0], [0, -2, 1], [1, 10, -0.5], [0, 0, 14], [2, -1, -1], [1, 1, 1], [0, 0, 0], [13, 20, -1]
-    ]
+    data = []
     get_state_distriburtion(data)
