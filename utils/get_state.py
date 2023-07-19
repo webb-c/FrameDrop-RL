@@ -6,10 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
-def get_state_distriburtion(data) :
-    # model = cluster_load()
-    model = KMeans(n_clusters=3, random_state=42)  
-    model.fit(data)
+def get_state_distriburtion(model, data) :
     labels  = model.predict(data)
     centers = model.cluster_centers_
     dfData = pd.DataFrame(data, columns=['X', 'Y', 'Z'])
@@ -27,11 +24,16 @@ def get_state_distriburtion(data) :
     # plt.show()
     plt.savefig('results/cluster.png')
 
+def cluster_init(k=30):
+    model = KMeans(n_clusters=k, random_state=42)
+    return model
     
-def cluster_train(data, k=30):
-    train_model = KMeans(n_clusters=k, random_state=42)  # else : MiniBatchKMeans
-    train_model.fit(data)
-    joblib.dump(train_model, '../models/cluster.pt')
+def cluster_train(model, data, visualize=False):
+    model.fit(data)
+    joblib.dump(model, '../models/cluster.pt')
+    if visualize :
+        get_state_distriburtion(model, data)
+    return model
 
 
 def cluster_load():
@@ -39,9 +41,8 @@ def cluster_load():
     return model
 
 
-def cluster_pred(sMSE, sFFT, sNet, model):
-    env = [sMSE, sFFT, sNet]
-    s = model.predict(env)
+def cluster_pred(originState, model):
+    s = model.predict(originState)
     return s
 
 if __name__ == "__main__":
