@@ -16,7 +16,7 @@ from utils.yolov5.detect import inference
 random.seed(42)
 
 
-class Buffer():
+class ReplayBuffer():
     def __init__(self, buffer_size):
         self.buffer = collections.deque(maxlen=buffer_size)
 
@@ -35,7 +35,7 @@ class Buffer():
 class FrameEnv():
     def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5, isClusterexist=False):
         isClusterexist
-        self.buffer = Buffer(buffer_size)
+        self.buffer = ReplayBuffer(buffer_size)
         self.data = collections.deque(maxlen=1000)
         self.omnet = Communicator()
         self.videoPath = videoPath

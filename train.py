@@ -23,7 +23,7 @@ def _main():
                 trans = envV.buffer.get()
                 agentV.Q_update(trans)
         # cluster update
-        if envV.data.size() > 300 :
+        if len(envV.data) > 300 :
             envV.model = cluster_train(envV.model, envV.data)
             isClusterexist = True
         if isClusterexist :
