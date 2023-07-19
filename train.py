@@ -21,7 +21,7 @@ def _main():
             a = agentV.get_action(s)
             s, done = envV.step(a)
         print("buffer size:", envV.buffer.size())
-        if envV.buffer.size() > 200:
+        if envV.buffer.size() > 50:
             print("Q update ...")
             for _ in range(50):
                 trans = envV.buffer.get()
@@ -29,7 +29,7 @@ def _main():
         # cluster update
         if len(envV.data) > 50 :
             print("clustering ... ")
-            envV.model = cluster_train(envV.model, np.array(envV.data))
+            envV.model = cluster_train(envV.model, np.array(envV.data), visualize=True)
             isClusterexist = True
         if isClusterexist :
             agentV.decrease_eps()

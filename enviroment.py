@@ -25,7 +25,7 @@ class ReplayBuffer():
             self.buffer.append(trans)
             
     def get(self):
-        trans = random.sample(self.buffer, 1)  # batch size = 1
+        trans = random.choice(self.buffer)  # batch size = 1
         return trans
 
     def size(self):
@@ -203,6 +203,12 @@ class FrameEnv():
             else :
                 r_net = self.beta * ((self.fps - a) / self.fps) * (A_diff)
             r = (1 - self.alpha) * (r_blur - r_dup) + self.alpha * (r_net)
+            print("===== reward =====")
+            print("r_blur:", r_blur)
+            print("r_dup:", r_dup)
+            print("r_net:", r_net)
+            print("R:", r)
+            print("==================")
             self.transList[i].append(r)
             self.idx += a+1
         return
@@ -214,7 +220,6 @@ class Communicator(Exception):
         self.pipe = self.init_pipe(self.pipeName, self.buffer_size)
 
     def send_omnet_message(self, msg):
-        print("msg :", msg)
         win32file.WriteFile(self.pipe, msg.encode('utf-8'))  # wait unil complete reward cal & a(t)
         
     def get_omnet_message(self):
