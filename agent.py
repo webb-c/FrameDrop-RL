@@ -26,7 +26,6 @@ class Agent():
         else:  # exploitation
             qValue = self.qTable[s, :]
             action = np.argmax(qValue)
-        print(action)
         return action
 
     def Q_update(self, trans):
