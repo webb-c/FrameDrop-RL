@@ -82,9 +82,12 @@ class FrameEnv():
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
                 guided = True
+                print("request guide")
+                self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("reward") 
-                ratioA = self.omnet.get_omnet_message()    # requset : waiting ?
+                ratioA = float(self.omnet.get_omnet_message())
                 newA = math.floor(ratioA*(self.fps))
+                print("new A :", newA)
                 start = self._triggered_by_guide(newA, temp, action, a)
             else:
                 self.frameList.append(temp)
@@ -101,8 +104,10 @@ class FrameEnv():
                     self.transList[-1].append(self.state)
                 # curr_trans (s, a)
                 self.transList.append((self.state, action))
+            print("state: ",self.originState,"action: ", action)
+            self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
-            self.omnet.send_omnet_message(action/self.fps)
+            self.omnet.send_omnet_message(str((action+1)/self.fps))
             self.data.append(self.originState)
         
         self.net = self._get_sNet()
@@ -119,8 +124,10 @@ class FrameEnv():
                 self.transList[-1].append(self.state)  
             # curr_trans (s, a)
             self.transList.append((self.state, a))
+        print("state: ",self.originState,"action: ", a)
+        self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("action")
-        self.omnet.send_omnet_message(a/self.fps)
+        self.omnet.send_omnet_message(str((a+1)/self.fps))
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
         self.prev_frame = self.frameList[-1]
@@ -145,8 +152,10 @@ class FrameEnv():
             # curr_trans (s, a)
             if self.isClusterexist : 
                 self.transList = [(self.state, na)]
+            print("state: ",self.originState,"action: ", na)
+            self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
-            self.omnet.send_omnet_message(na/self.fps)
+            self.omnet.send_omnet_message(str((na+1)/self.fps))
             return False
         return True
     
