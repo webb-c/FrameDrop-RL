@@ -7,7 +7,6 @@ import random
 import cv2
 import os
 import win32pipe, win32file
-from agent import Agent
 from utils.get_state import cluster_pred, cluster_load, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
 from utils.cal_F1 import get_F1

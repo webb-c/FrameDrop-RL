@@ -1,6 +1,7 @@
 """
 for offline-training
 """
+import numpy as np
 from agent import Agent
 from enviroment import FrameEnv
 from utils.get_state import cluster_train
@@ -28,9 +29,13 @@ def _main():
             isClusterexist = True
         if isClusterexist :
             agentV.decrease_eps()
-    return
+    return agentV.get_q_table()
 
+def _save_q_table(qTable, filePath="models/q_table") :
+    np.save(filePath, qTable)
 
 if __name__ == "__main__":
     # opt = _parge_opt()
-    _main()
+    qTable = _main()
+    _save_q_table(qTable)
+    

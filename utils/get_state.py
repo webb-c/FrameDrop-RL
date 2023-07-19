@@ -1,7 +1,7 @@
 """
 clustering for 3-dimension continuous state to (10,3) discrete state 
 """
-import joblib
+from sklearn.externals import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
@@ -30,14 +30,14 @@ def cluster_init(k=30):
     
 def cluster_train(model, data, visualize=False):
     model.fit(data)
-    joblib.dump(model, '../models/cluster.pt')
+    joblib.dump(model, '../models/cluster.pkl')
     if visualize :
         get_state_distriburtion(model, data)
     return model
 
 
 def cluster_load():
-    model = joblib.load("../models/cluster.pt")
+    model = joblib.load("../models/cluster.pkl")
     return model
 
 
