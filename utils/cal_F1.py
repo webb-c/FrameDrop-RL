@@ -39,7 +39,7 @@ def _cal_F1(filePred, skipFilePred, threshold=0.5) :  # pred, labels
     FN = len(skipFilePred) - TP
     precision = TP / (TP+FP)
     recall = TP /  (TP+FN)
-    F1 = 2*(precision*recall) / (precision+recall)
+    F1 = 2*(precision*recall) / (precision+recall) if (precision+recall) != 0 else 0
     return F1
 
 def get_F1(fileName, skipFileName) :

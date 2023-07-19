@@ -23,7 +23,7 @@ class ReplayBuffer():
     def put(self, transList):
         for trans in transList:
             self.buffer.append(trans)
-
+            
     def get(self):
         trans = random.sample(self.buffer, 1)  # batch size = 1
         return trans
@@ -41,13 +41,13 @@ class FrameEnv():
         self.videoPath = videoPath
         self.fps = fps
         # hyper-parameter
-        self.alpha = alpha
+        self.alpha = alpha 
         self.beta = beta
         self.w = w
         self.model = cluster_init(k=self.fps)
         if self.isClusterexist :  
             self.model = cluster_load()
-        # self._detect()
+        self._detect()
         # state
         self.reset()
 
@@ -82,12 +82,10 @@ class FrameEnv():
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
                 guided = True
-                print("request guide")
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("reward") 
                 ratioA = float(self.omnet.get_omnet_message())
                 newA = math.floor(ratioA*(self.fps))
-                print("new A :", newA)
                 start = self._triggered_by_guide(newA, temp, action, a)
             else:
                 self.frameList.append(temp)
@@ -103,7 +101,7 @@ class FrameEnv():
                 if len(self.transList) > 0 :
                     self.transList[-1].append(self.state)
                 # curr_trans (s, a)
-                self.transList.append((self.state, action))
+                self.transList.append([self.state, action])
             print("state: ",self.originState,"action: ", action)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
@@ -123,13 +121,15 @@ class FrameEnv():
             if len(self.transList) > 0 :
                 self.transList[-1].append(self.state)  
             # curr_trans (s, a)
-            self.transList.append((self.state, a))
+            self.transList.append([self.state, a])
         print("state: ",self.originState,"action: ", a)
         self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("action")
         self.omnet.send_omnet_message(str((a+1)/self.fps))
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
+        print("request guide")
+        print("new A :", newA)
         self.prev_frame = self.frameList[-1]
         self.frame = temp
         self.frameList = [self.frame]
@@ -144,14 +144,14 @@ class FrameEnv():
             self.transList[-1].append(self.state)
             # reward
             self._get_reward()
-            self.buffer.put(self.transList)
+            self.buffer.put(self.transList[:])
             self.transList = []
         # subTask 2
         na = action-a-1
         if na >= 0:
             # curr_trans (s, a)
             if self.isClusterexist : 
-                self.transList = [(self.state, na)]
+                self.transList = [[self.state, na]]
             print("state: ",self.originState,"action: ", na)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
@@ -162,7 +162,7 @@ class FrameEnv():
     def _get_sNet(self):
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
     
-    def _detect(self, exist=False):
+    def _detect(self, exist=True):
         command = ["--weights", "models/yolov5s6.pt", "--source", self.videoPath, "--save-txt", "--save-conf", "--nosave"]
         if not exist : 
             inference(command) # cls, *xywh, conf
@@ -182,15 +182,16 @@ class FrameEnv():
         for f in range(self.fps) :
             sIdx = max(0, f-self.w)
             eIdx = max(self.fps, f+self.w+1)
-            maxNum = max(self.objNumList[sIdx:eIdx])
-            inv_importance = (1 - self.objNumList[i] / maxNum) if maxNum != 0 else 0
+            eIdx = max(self.idx + eIdx, len(self.objNumList))
+            maxNum = max(self.objNumList[self.idx+sIdx:eIdx])
+            if self.idx+f > len(self.objNumList) : break   # TODO
+            inv_importance = (1 - self.objNumList[self.idx + f] / maxNum) if maxNum != 0 else 0
             self.iList.append(inv_importance)
-        del self.objNumList[:self.fps] # remove already using
         A_diff = self.targetA - self.prevA
         for i in range(length):
             s, a, s_prime = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
-            r_blur = sum(self.iList[self.idx:self.idx+a+1]) / a
+            r_blur = sum(self.iList[self.idx:self.idx+a+1]) / a if a != 0 else 0
             self.F1List = []
             refFrame = self.resultPath+"/test_"+str(self.idx+1)+".txt"
             for k in range(1, a+1) :
@@ -213,6 +214,7 @@ class Communicator(Exception):
         self.pipe = self.init_pipe(self.pipeName, self.buffer_size)
 
     def send_omnet_message(self, msg):
+        print("msg :", msg)
         win32file.WriteFile(self.pipe, msg.encode('utf-8'))  # wait unil complete reward cal & a(t)
         
     def get_omnet_message(self):
