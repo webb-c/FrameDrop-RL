@@ -14,13 +14,14 @@ def get_MSE(prev_frame, frame) :
     
 # blurring
 def get_FFT(frame, radius=60) :
-    H, W = frame.shape
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    H, W = gray_frame.shape   # H, W
     centerX, centerY = map(int, [W/2.0, H/2.0])
     # fft
-    fft = np.fft.fft2(frame)
+    fft = np.fft.fft2(gray_frame)
     fftShift = np.fft.fftshift(fft)
     # remove Blur
-    fftShift[centerY - radius : centerY + radius, centerX - radius, centerX + radius] = 0
+    fftShift[centerY - radius : centerY + radius, centerX - radius : centerX + radius] = 0
     # ifft
     fftShift = np.fft.ifftshift(fftShift)
     reFrame = np.fft.ifft2(fftShift)
