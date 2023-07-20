@@ -51,7 +51,8 @@ class FrameEnv():
         # state
         self.reset()
 
-    def reset(self, isClusterexist=False):
+    def reset(self, isClusterexist=False, ):
+        self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
         self.isClusterexist = isClusterexist
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
@@ -102,7 +103,7 @@ class FrameEnv():
                     self.transList[-1].append(self.state)
                 # curr_trans (s, a)
                 self.transList.append([self.state, action])
-            print("state: ",self.originState,"action: ", action)
+            # print("state: ",self.originState,"action: ", action)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
             self.omnet.send_omnet_message(str((action+1)/self.fps))
@@ -122,13 +123,12 @@ class FrameEnv():
                 self.transList[-1].append(self.state)  
             # curr_trans (s, a)
             self.transList.append([self.state, a])
-        print("state: ",self.originState,"action: ", a)
+        # print("state: ",self.originState,"action: ", a)
         self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("action")
         self.omnet.send_omnet_message(str((a+1)/self.fps))
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
-        print("request guide")
         print("new A :", newA)
         self.prev_frame = self.frameList[-1]
         self.frame = temp
@@ -152,7 +152,7 @@ class FrameEnv():
             # curr_trans (s, a)
             if self.isClusterexist : 
                 self.transList = [[self.state, na]]
-            print("state: ",self.originState,"action: ", na)
+            # print("state: ",self.originState,"action: ", na)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
             self.omnet.send_omnet_message(str((na+1)/self.fps))
@@ -203,14 +203,18 @@ class FrameEnv():
             else :
                 r_net = self.beta * ((self.fps - a) / self.fps) * (A_diff)
             r = (1 - self.alpha) * (r_blur - r_dup) + self.alpha * (r_net)
-            print("===== reward =====")
-            print("r_blur:", r_blur)
-            print("r_dup:", r_dup)
-            print("r_net:", r_net)
-            print("R:", r)
-            print("==================")
             self.transList[i].append(r)
             self.idx += a+1
+            self.reward_sum[0] += r_blur
+            self.reward_sum[1] += r_dup
+            self.reward_sum[2] += r_net
+            self.reward_sum[3] += r
+            # print("===== reward =====")
+            # print("r_blur:", r_blur)
+            # print("r_dup:", r_dup)
+            # print("r_net:", r_net)
+            # print("R:", r)
+            # print("==================")
         return
 
 class Communicator(Exception):

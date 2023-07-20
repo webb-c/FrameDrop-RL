@@ -4,23 +4,26 @@ for offline-training
 import numpy as np
 from agent import Agent
 from enviroment import FrameEnv
+import datetime
+from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train
 # hyperparameter -> change parameter using argparse
 
 
 def _main():
     isClusterexist = False
-    envV = FrameEnv("data/test.mp4", isClusterexist=isClusterexist)   # etc
+    logdir="results/logs/train"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    writer = SummaryWriter(logdir)
+    envV = FrameEnv(videoPath="data/test.mp4", isClusterexist=isClusterexist)   # etc
     agentV = Agent()
-    for epi in range(10000):           # request : how decide episode?
+    for epi in range(5000):           # request : how decide episode?
         print("episode :", epi)
         done = False
-        s = envV.reset(isClusterexist)
+        s = envV.reset(isClusterexist=isClusterexist)
         print(envV.isClusterexist)
         while not done:
             a = agentV.get_action(s)
             s, done = envV.step(a)
-        print("buffer size:", envV.buffer.size())
         if envV.buffer.size() > 50:
             print("Q update ...")
             for _ in range(50):
@@ -33,6 +36,10 @@ def _main():
             isClusterexist = True
         if isClusterexist :
             agentV.decrease_eps()
+            writer.add_scalar("Reward/blur", envV.reward_sum[0], epi)
+            writer.add_scalar("Reward/dup", envV.reward_sum[1], epi)
+            writer.add_scalar("Reward/net", envV.reward_sum[2], epi)
+            writer.add_scalar("Reward/total", envV.reward_sum[3], epi)
         envV.omnet.get_omnet_message()
         envV.omnet.send_omnet_message("finish") 
     return agentV.get_q_table()
