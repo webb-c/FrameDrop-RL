@@ -9,14 +9,16 @@ random.seed(42)
 
 
 class Agent():
-    def __init__(self, qTable=[], eps=1, fps=30, lr=0.1, gamma=0.9):
+    def __init__(self, qTable=[], eps=1, fps=30, lr=0.1, gamma=0.9, stateNum=stateNum):
         self.eps = eps
         self.lr = lr
         self.gamma = gamma
+        self.stateNum = stateNum
+        self.fps = fps
         if qTable : 
             self.qTable = qTable
         else :
-            self.qTable = np.zeros((30, 30))  # s, a
+            self.qTable = np.zeros((stateNum, fps))  # s, a
         self.actionSpace = list(range(fps))  # 0 to fps-1
 
     def get_action(self, s):
@@ -34,6 +36,12 @@ class Agent():
             (r + np.max(self.qTable[s_prime, :]) - self.qTable[s, a])
         return
 
+    def Q_show(self):
+        for s in self.stateNum :
+            for a in self.fps :
+                print(self.qTable[s][a], "end=   ")
+            print()
+    
     def get_q_table(self) :
         return self.qTable
     

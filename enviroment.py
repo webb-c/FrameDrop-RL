@@ -33,7 +33,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5, isClusterexist=False):
+    def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5, stateNum=10, isClusterexist=False):
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(buffer_size)
         self.data = collections.deque(maxlen=1000)
@@ -44,14 +44,14 @@ class FrameEnv():
         self.alpha = alpha 
         self.beta = beta
         self.w = w
-        self.model = cluster_init(k=self.fps)
+        self.model = cluster_init(k=stateNum)
         if self.isClusterexist :  
             self.model = cluster_load()
         self._detect()
         # state
         self.reset()
 
-    def reset(self, isClusterexist=False, ):
+    def reset(self, isClusterexist=False):
         self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
         self.isClusterexist = isClusterexist
         self.cap = cv2.VideoCapture(self.videoPath)

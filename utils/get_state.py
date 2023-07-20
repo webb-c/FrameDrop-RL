@@ -13,7 +13,7 @@ def get_state_distriburtion(model, data) :
     
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(centers[:,0], centers[:,1], centers[:, 2], s = 250, marker='*', c='red', label='centroids')
+    ax.scatter(centers[:,0], centers[:,1], centers[:, 2], s =250, marker='*', c='red', label='centroids')
     ax.scatter(dfData['X'], dfData['Y'], dfData['Z'], c=labels,s=40, cmap='winter')
 
     ax.set_title('K-Means Clustering')
@@ -25,7 +25,7 @@ def get_state_distriburtion(model, data) :
     plt.savefig('results/cluster.png')
 
 def cluster_init(k=30):
-    model = KMeans(n_clusters=k, random_state=42)
+    model = KMeans(n_clusters=k, n_init=10, random_state=42)
     return model
     
 def cluster_train(model, data, visualize=False):
