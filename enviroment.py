@@ -33,10 +33,11 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoPath="data/test.mp4", buffer_size=1000, fps=30, alpha=0.7, beta=10, w=5, stateNum=10, isClusterexist=False):
+    def __init__(self, videoPath, data_maxlen, replayBuffer_maxlen, fps, alpha, beta, w, stateNum, isDetectionexist=True, isClusterexist=False):
+        self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
-        self.buffer = ReplayBuffer(buffer_size)
-        self.data = collections.deque(maxlen=1000)
+        self.buffer = ReplayBuffer(replayBuffer_maxlen)
+        self.data = collections.deque(data_maxlen)
         self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
         self.videoPath = videoPath
         self.fps = fps
@@ -197,12 +198,12 @@ class FrameEnv():
             for k in range(1, a+1) :
                 skipFrame = self.resultPath+"/test_"+str(self.idx+k+1)+".txt"
                 self.F1List.append(1 - get_F1(refFrame, skipFrame))
-            r_dup = sum(self.F1List)
+            r_dup = -1 *sum(self.F1List)
             if A_diff >= 0 :
                 r_net = (a/self.fps)*(A_diff)
             else :
                 r_net = self.beta * ((self.fps - a) / self.fps) * (A_diff)
-            r = (1 - self.alpha) * (r_blur - r_dup) + self.alpha * (r_net)
+            r = (1 - self.alpha) * (r_blur + r_dup) + self.alpha * (r_net)
             self.transList[i].append(r)
             self.idx += a+1
             self.reward_sum[0] += r_blur

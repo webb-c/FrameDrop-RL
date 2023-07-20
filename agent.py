@@ -9,8 +9,10 @@ random.seed(42)
 
 
 class Agent():
-    def __init__(self, qTable=[], eps=1, fps=30, lr=0.1, gamma=0.9, stateNum=stateNum):
-        self.eps = eps
+    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=10):
+        self.eps = eps_init
+        self.eps_decrese = eps_decrese
+        self.eps_min = eps_min
         self.lr = lr
         self.gamma = gamma
         self.stateNum = stateNum
@@ -37,14 +39,14 @@ class Agent():
         return
 
     def Q_show(self):
-        for s in self.stateNum :
-            for a in self.fps :
-                print(self.qTable[s][a], "end=   ")
+        for s in range(self.stateNum) :
+            for a in range(self.fps) :
+                print(self.qTable[s][a], end="   ")
             print()
     
     def get_q_table(self) :
         return self.qTable
     
     def decrease_eps(self):
-        self.eps -= 0.01
-        self.eps = max(self.eps, 0.1)
+        self.eps -= self.eps_decrese
+        self.eps = max(self.eps, self.eps_min)
