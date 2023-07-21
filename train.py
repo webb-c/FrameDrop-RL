@@ -13,22 +13,28 @@ stateNum = 20
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
 resultPath = "utils/yolov5/runs/detect/exp3/labels"
+qTablePath = "models/q_table_1.npy"
 logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-data_len=1000
-data_maxlen=10000
-replayBuffer_len=1000
-replayBuffer_maxlen=10000
+
 fps = 30
-alpha = 0.5
-beta = 2
 w = 5
-epi_actions = 1000
-lr = 0.1
-gamma = 0.9
-episoode_maxlen = 500
+
 eps_init = 1
 eps_decrese = 0.01
 eps_min = 0.1
+
+episoode_maxlen = 500
+epi_actions = 1000
+
+data_len=1000
+data_maxlen=10000
+replayBuffer_len=1000
+replayBuffer_maxlen=30000
+
+alpha = 0.5  # R Net between R Acc
+beta = 2     # R Net's penalty weight
+lr = 0.1     # learning rate
+gamma = 0.9  # immediate and future
 
 def _main():
     isClusterexist = False
@@ -78,5 +84,5 @@ def _save_q_table(qTable, filePath="models/q_table.npy") :
 if __name__ == "__main__":
     # opt = _parge_opt()
     qTable = _main()
-    _save_q_table(qTable)
+    _save_q_table(qTable, qTablePath)
     

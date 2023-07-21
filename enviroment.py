@@ -64,6 +64,7 @@ class FrameEnv():
             
     def reset(self, isClusterexist=False):
         self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
+        self.iList = []
         self.isClusterexist = isClusterexist
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
@@ -156,7 +157,7 @@ class FrameEnv():
         self.omnet.send_omnet_message(str((a+1)/self.fps))
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
-        print("new A :", newA)
+        # print("new A :", newA)
         self.prev_frame = self.frameList[-1]
         self.frame = temp
         self.frameList = [self.frame]
@@ -234,30 +235,38 @@ class FrameEnv():
     def _get_reward(self):
         length = len(self.transList)
         # get importance
-        self.iList = []
         for f in range(self.fps) :
-            sIdx = max(0, f-self.w)
-            eIdx = max(self.fps, f+self.w+1)
-            eIdx = max(self.idx + eIdx, len(self.objNumList))
-            maxNum = max(self.objNumList[self.idx+sIdx:eIdx])
-            if self.idx+f > len(self.objNumList) : break   # TODO
-            inv_importance = (1 - self.objNumList[self.idx + f] / maxNum) if maxNum != 0 else 0
+            ww = self.w//2
+            sIdx = max(0, f-ww)
+            eIdx = min(self.fps-1, f+ww)
+            sGap = f-sIdx
+            eGap = eIdx-f
+            if sGap < ww :
+                eIdx += (ww-sGap)
+            elif eGap < ww :
+                sIdx -= (ww-eGap)
+            eIdx = min(self.idx+eIdx, len(self.objNumList))
+            maxNum = max(self.objNumList[self.idx+sIdx : eIdx+1])
+            if self.idx+f > len(self.objNumList) : break   
+            inv_importance = 10*(1 - self.objNumList[self.idx + f] / maxNum) if maxNum != 0 else 0
             self.iList.append(inv_importance)
         A_diff = self.targetA - self.prevA
         for i in range(length):
             s, a, s_prime = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
-            r_blur = sum(self.iList[self.idx:self.idx+a+1]) / a if a != 0 else 0
+            r_blur = (sum(self.iList[self.idx:self.idx+a+1]) / a) if a != 0 else 0
             self.F1List = []
             refFrame = self.resultPath+self.videoName+str(self.idx+1)+".txt"
             for k in range(1, a+1) :
                 skipFrame = self.resultPath+self.videoName+str(self.idx+k+1)+".txt"
                 self.F1List.append(1 - get_F1(refFrame, skipFrame))
-            r_dup = -1 *sum(self.F1List)
+            r_dup = sum(self.F1List)
+            # r_net
             if A_diff >= 0 :
-                r_net = (a/self.fps)*(A_diff)
+                r_net = (a/self.fps)*(A_diff) + self.targetA
             else :
-                r_net = self.beta * ((self.fps - a) / self.fps) * (A_diff)
+                r_net = self.beta * (1-a/self.fps)*(A_diff) + self.targetA
+            r_net = r_net / 10
             r = (1 - self.alpha) * (r_blur + r_dup) + self.alpha * (r_net)
             self.transList[i].append(r)
             self.idx += a+1
