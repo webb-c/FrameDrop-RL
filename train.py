@@ -10,7 +10,10 @@ from utils.get_state import cluster_train
 # hyperparameter -> change parameter using argparse
 # for episode : frame count 9000
 stateNum = 20
-videoPath="data/test.mp4"
+videoPath = "data/Jackson-1.mp4"
+videoName = "/Jackson-1_"
+resultPath = "utils/yolov5/runs/detect/exp2/labels"
+logdir="results/logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 data_len=1000
 data_maxlen=10000
 replayBuffer_len=1000
@@ -20,20 +23,19 @@ alpha = 0.7
 beta = 10
 w = 5
 epi_actions = 100
-lr=0.1, 
-gamma=0.9
+lr = 0.1
+gamma = 0.9
 episoode_maxlen = 500
-eps_init=1
-eps_decrese=0.01
-eps_min=0.1
+eps_init = 1
+eps_decrese = 0.01
+eps_min = 0.1
 
 def _main():
     isClusterexist = False
-    # isDetectionexist = False
     isDetectionexist = True
-    logdir="results/logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    # isDetectionexist = False
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoPath=videoPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_len, fps=fps, alpha=alpha, beta=beta, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist)   # etc
+    envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_len, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist)   # etc
     agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum)
     for epi in range(episoode_maxlen):          
         print("episode :", epi)

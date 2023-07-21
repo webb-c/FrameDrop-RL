@@ -33,13 +33,15 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoPath, data_maxlen, replayBuffer_maxlen, fps, alpha, beta, w, stateNum, isDetectionexist=True, isClusterexist=False):
+    def __init__(self, videoName, videoPath, resultPath, data_maxlen, replayBuffer_maxlen, fps, alpha, beta, w, stateNum, isDetectionexist=True, isClusterexist=False):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
-        self.data = collections.deque(data_maxlen)
+        self.data = collections.deque(maxlen=data_maxlen)
         self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+        self.videoName = videoName
         self.videoPath = videoPath
+        self.resultPath = resultPath
         self.fps = fps
         # hyper-parameter
         self.alpha = alpha 
@@ -48,7 +50,7 @@ class FrameEnv():
         self.model = cluster_init(k=stateNum)
         if self.isClusterexist :  
             self.model = cluster_load()
-        self._detect()
+        self._detect(self.isDetectionexist)
         # state
         self.reset()
 
@@ -167,7 +169,6 @@ class FrameEnv():
         command = ["--weights", "models/yolov5s6.pt", "--source", self.videoPath, "--save-txt", "--save-conf", "--nosave"]
         if not exist : 
             inference(command) # cls, *xywh, conf
-        self.resultPath = "utils/yolov5/runs/detect/exp/labels"
         fileList =  os.listdir(self.resultPath)
         self.objNumList = []  # 물체개수
         for fileName in fileList :
@@ -194,9 +195,9 @@ class FrameEnv():
             # request addition (YOLO -> self.frameList detect)
             r_blur = sum(self.iList[self.idx:self.idx+a+1]) / a if a != 0 else 0
             self.F1List = []
-            refFrame = self.resultPath+"/test_"+str(self.idx+1)+".txt"
+            refFrame = self.resultPath+self.videoName+str(self.idx+1)+".txt"
             for k in range(1, a+1) :
-                skipFrame = self.resultPath+"/test_"+str(self.idx+k+1)+".txt"
+                skipFrame = self.resultPath+self.videoName+str(self.idx+k+1)+".txt"
                 self.F1List.append(1 - get_F1(refFrame, skipFrame))
             r_dup = -1 *sum(self.F1List)
             if A_diff >= 0 :

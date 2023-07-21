@@ -24,7 +24,7 @@ def get_state_distriburtion(model, data) :
     # plt.show()
     plt.savefig('results/cluster.png')
 
-def cluster_init(k=30):
+def cluster_init(k=10):
     model = KMeans(n_clusters=k, n_init=10, random_state=42)
     return model
     
