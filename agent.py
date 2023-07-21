@@ -22,14 +22,19 @@ class Agent():
         else :
             self.qTable = np.zeros((stateNum, fps))  # s, a
         self.actionSpace = list(range(fps))  # 0 to fps-1
+        self.isRun = isRun
 
     def get_action(self, s):
-        p = random.random()
-        if p < self.eps:  # exploration
-            action = random.choice(self.actionSpace)
-        else:  # exploitation
+        if self.isRun :
             qValue = self.qTable[s, :]
             action = np.argmax(qValue)
+        else :
+            p = random.random()
+            if p < self.eps:  # exploration
+                action = random.choice(self.actionSpace)
+            else:  # exploitation
+                qValue = self.qTable[s, :]
+                action = np.argmax(qValue)
         return action
 
     def Q_update(self, trans):

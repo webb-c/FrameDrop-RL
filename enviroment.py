@@ -34,7 +34,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, alpha=0.5, beta=2, w=5, stateNum=20, isDetectionexist=True, isClusterexist=False, isRun=False):
+    def __init__(self, videoName, videoPath, resultPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, alpha=0.5, beta=2, w=5, stateNum=20, isDetectionexist=True, isClusterexist=False, isRun=False, outVideoPath="./output.mp4"):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
@@ -44,6 +44,7 @@ class FrameEnv():
         self.videoPath = videoPath
         self.resultPath = resultPath
         self.fps = fps
+        self.isRun = isRun
         # hyper-parameter
         self.alpha = alpha 
         self.beta = beta
@@ -54,7 +55,12 @@ class FrameEnv():
         self._detect(self.isDetectionexist)
         # state
         self.reset()
-
+        if self.isRun :
+            self.processedFrameList = []
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            self.outVideoPath = outVideoPath
+            self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
+            
     def reset(self, isClusterexist=False):
         self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
         self.isClusterexist = isClusterexist
@@ -85,6 +91,10 @@ class FrameEnv():
             ret, temp = self.cap.read()
             if not ret:
                 self.cap.release()
+                self.processedFrameList += self.processList
+                for frame in self.processedFrameList :
+                    self.out.write(frame)
+                self.out.release()
                 return -1, True
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
@@ -143,6 +153,7 @@ class FrameEnv():
         self.prev_frame = self.frameList[-1]
         self.frame = temp
         self.frameList = [self.frame]
+        self.processedFrameList += self.processList
         self.processList = [self.frame]
         self.prevA = self.targetA
         self.targetA = newA
