@@ -52,12 +52,13 @@ class FrameEnv():
         self.model = cluster_init(k=stateNum)
         if self.isClusterexist :  
             self.model = cluster_load()
-        self._detect(self.isDetectionexist)
+        if not self.isRun :
+            self._detect(self.isDetectionexist)
         # state
         self.reset()
         if self.isRun :
             self.processedFrameList = []
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             self.outVideoPath = outVideoPath
             self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
             
@@ -76,7 +77,10 @@ class FrameEnv():
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
         self.net = self._get_sNet()
-        self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
+        if self.isRun :
+            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+        else :
+            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
         self.state = 0
         if self.isClusterexist :
             self.transList = []
@@ -129,7 +133,10 @@ class FrameEnv():
             self.curFrameIdx += (action+1)
         
         self.net = self._get_sNet()
-        self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
+        if self.isRun :
+            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+        else :
+            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
         if self.isClusterexist :
             self.state = cluster_pred(self.originState, self.model)
         return self.state, False
@@ -159,13 +166,17 @@ class FrameEnv():
         self.targetA = newA
         self.net = self._get_sNet()
         self.curFrameIdx += (a+1)
-        self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
+        if self.isRun :
+            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+        else :
+            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
         if self.isClusterexist :
             self.state = cluster_pred(self.originState, self.model)
             # curr_trans append s_prime
             self.transList[-1].append(self.state)
             # reward
-            self._get_reward()
+            if not self.isRun :
+                self._get_reward()
             self.buffer.put(self.transList[:])
             self.transList = []
         # subTask 2

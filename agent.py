@@ -17,7 +17,7 @@ class Agent():
         self.gamma = gamma
         self.stateNum = stateNum
         self.fps = fps
-        if qTable : 
+        if len(qTable) > 0 : 
             self.qTable = qTable
         else :
             self.qTable = np.zeros((stateNum, fps))  # s, a

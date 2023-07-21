@@ -68,6 +68,7 @@ def _main():
         envV.omnet.get_omnet_message()
         envV.omnet.send_omnet_message("finish")
         isDetectionexist = True
+    envV.omnet.close_pipe()
     return agentV.get_q_table()
 
 def _save_q_table(qTable, filePath="models/q_table.npy") :
