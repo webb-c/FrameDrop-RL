@@ -34,7 +34,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, data_maxlen, replayBuffer_maxlen, fps, alpha, beta, w, stateNum, isDetectionexist=True, isClusterexist=False):
+    def __init__(self, videoName, videoPath, resultPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, alpha=0.5, beta=2, w=5, stateNum=20, isDetectionexist=True, isClusterexist=False, isRun=False):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(replayBuffer_maxlen)

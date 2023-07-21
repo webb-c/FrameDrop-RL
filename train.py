@@ -13,7 +13,7 @@ stateNum = 20
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
 resultPath = "utils/yolov5/runs/detect/exp3/labels"
-logdir="results/logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 data_len=1000
 data_maxlen=10000
 replayBuffer_len=1000
@@ -35,8 +35,8 @@ def _main():
     isDetectionexist = True
     # isDetectionexist = False
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist)   # etc
-    agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum)
+    envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist, isRun=False)   # etc
+    agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum, isRun=False)
     #
     for epi in range(episoode_maxlen):          
         print("episode :", epi)

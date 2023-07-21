@@ -9,7 +9,7 @@ random.seed(42)
 
 
 class Agent():
-    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=10):
+    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=20, isRun=False):
         self.eps = eps_init
         self.eps_decrese = eps_decrese
         self.eps_min = eps_min
@@ -50,3 +50,4 @@ class Agent():
     def decrease_eps(self):
         self.eps -= self.eps_decrese
         self.eps = max(self.eps, self.eps_min)
+        print("epsilon :", self.eps)
