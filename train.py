@@ -12,17 +12,17 @@ from utils.get_state import cluster_train
 stateNum = 20
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
-resultPath = "utils/yolov5/runs/detect/exp2/labels"
+resultPath = "utils/yolov5/runs/detect/exp3/labels"
 logdir="results/logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 data_len=1000
 data_maxlen=10000
 replayBuffer_len=1000
-replayBuffer_maxlen=50000
+replayBuffer_maxlen=10000
 fps = 30
-alpha = 0.7
-beta = 10
+alpha = 0.5
+beta = 2
 w = 5
-epi_actions = 100
+epi_actions = 1000
 lr = 0.1
 gamma = 0.9
 episoode_maxlen = 500
@@ -35,8 +35,9 @@ def _main():
     isDetectionexist = True
     # isDetectionexist = False
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_len, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist)   # etc
+    envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist)   # etc
     agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum)
+    #
     for epi in range(episoode_maxlen):          
         print("episode :", epi)
         done = False
@@ -63,12 +64,13 @@ def _main():
             writer.add_scalar("Reward/total", envV.reward_sum[3], epi)
         if (epi % 50) == 0:
             agentV.Q_show()
+        print("buffer size: ", envV.buffer.size())
         envV.omnet.get_omnet_message()
         envV.omnet.send_omnet_message("finish")
         isDetectionexist = True
     return agentV.get_q_table()
 
-def _save_q_table(qTable, filePath="models/q_table") :
+def _save_q_table(qTable, filePath="models/q_table.npy") :
     print("save!")
     np.save(filePath, qTable)
 

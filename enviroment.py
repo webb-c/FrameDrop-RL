@@ -7,6 +7,7 @@ import random
 import cv2
 import os
 import math
+import numpy as np
 import win32pipe, win32file
 from utils.get_state import cluster_pred, cluster_load, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
@@ -59,6 +60,7 @@ class FrameEnv():
         self.isClusterexist = isClusterexist
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
+        self.curFrameIdx = 1
         self.prevA = self.fps
         self.targetA = self.fps
         _, f1 = self.cap.read()
@@ -68,7 +70,7 @@ class FrameEnv():
         self.prev_frame = self.frameList[-2]
         self.frame = self.frameList[-1]
         self.net = self._get_sNet()
-        self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+        self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
         self.state = 0
         if self.isClusterexist :
             self.transList = []
@@ -82,6 +84,7 @@ class FrameEnv():
         for a in range(action+1):
             ret, temp = self.cap.read()
             if not ret:
+                self.cap.release()
                 return -1, True
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
@@ -89,6 +92,7 @@ class FrameEnv():
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("reward") 
                 ratioA = float(self.omnet.get_omnet_message())
+                self.omnet.send_omnet_message("ACK")
                 newA = math.floor(ratioA*(self.fps))
                 start = self._triggered_by_guide(newA, temp, action, a)
             else:
@@ -109,11 +113,13 @@ class FrameEnv():
             # print("state: ",self.originState,"action: ", action)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
+            self.omnet.get_omnet_message()
             self.omnet.send_omnet_message(str((action+1)/self.fps))
             self.data.append(self.originState)
+            self.curFrameIdx += (action+1)
         
         self.net = self._get_sNet()
-        self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+        self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
         if self.isClusterexist :
             self.state = cluster_pred(self.originState, self.model)
         return self.state, False
@@ -129,6 +135,7 @@ class FrameEnv():
         # print("state: ",self.originState,"action: ", a)
         self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("action")
+        self.omnet.get_omnet_message()
         self.omnet.send_omnet_message(str((a+1)/self.fps))
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
@@ -140,7 +147,8 @@ class FrameEnv():
         self.prevA = self.targetA
         self.targetA = newA
         self.net = self._get_sNet()
-        self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+        self.curFrameIdx += (a+1)
+        self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
         if self.isClusterexist :
             self.state = cluster_pred(self.originState, self.model)
             # curr_trans append s_prime
@@ -158,12 +166,35 @@ class FrameEnv():
             # print("state: ",self.originState,"action: ", na)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
+            self.omnet.get_omnet_message()
             self.omnet.send_omnet_message(str((na+1)/self.fps))
+            # ret = self.omnet.get_omnet_message()
+            # if ret != "ACK" :
+            #     print("error in action")
+            #     return
+            self.curFrameIdx += (na+1)
             return False
         return True
     
     def _get_sNet(self):
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
+    
+    def _get_FFT_List(self, exist=True):
+        if not exist : 
+            cap = cv2.VideoCapture(self.videoPath)
+            self.FFTList = []
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                blur = get_FFT(frame)
+                self.FFTList.append(blur)
+            cap.release()
+            # np.save(filePath, qTable)
+            np.save("models/FFT_List.npy", self.FFTList)
+        else : 
+            self.FFTList = np.load("models/FFT_List.npy")
+        return
     
     def _detect(self, exist=True):
         command = ["--weights", "models/yolov5s6.pt", "--source", self.videoPath, "--save-txt", "--save-conf", "--nosave"]
@@ -171,6 +202,7 @@ class FrameEnv():
             inference(command) # cls, *xywh, conf
         fileList =  os.listdir(self.resultPath)
         self.objNumList = []  # 물체개수
+        self._get_FFT_List(exist)
         for fileName in fileList :
             filePath = self.resultPath+"/"+fileName
             with open(filePath, 'r') as file :
@@ -257,10 +289,3 @@ class Communicator(Exception):
         win32pipe.ConnectNamedPipe(pipe, None)
 
         return pipe
-
-# test
-def main():
-    env = FrameEnv()
-    
-if __name__ == "__main__" :
-    main()
