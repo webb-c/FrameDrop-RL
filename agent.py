@@ -41,7 +41,7 @@ class Agent():
     def Q_show(self):
         for s in range(self.stateNum) :
             for a in range(self.fps) :
-                print(self.qTable[s][a], end="   ")
+                print(round(self.qTable[s][a], 2), end="   ")
             print()
     
     def get_q_table(self) :
