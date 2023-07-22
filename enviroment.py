@@ -34,7 +34,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, alpha=0.5, beta=2, w=5, stateNum=20, isDetectionexist=True, isClusterexist=False, isRun=False, outVideoPath="./output.mp4"):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, alpha=0.5, beta=2, w=5, stateNum=20, isDetectionexist=True, isClusterexist=False, isRun=False, outVideoPath="./output.mp4"):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
@@ -45,13 +45,14 @@ class FrameEnv():
         self.resultPath = resultPath
         self.fps = fps
         self.isRun = isRun
+        self.clusterPath = clusterPath
         # hyper-parameter
         self.alpha = alpha 
         self.beta = beta
         self.w = w
         self.model = cluster_init(k=stateNum)
         if self.isClusterexist :  
-            self.model = cluster_load()
+            self.model = cluster_load(self.clusterPath)
         if not self.isRun :
             self._detect(self.isDetectionexist)
         # record
@@ -95,6 +96,7 @@ class FrameEnv():
             self.state = cluster_pred(self.originState, self.model)
         if self.showLog :   
             self.logList = [[]]
+            self.logList[-1].append("A(t)="+str(self.targetA))
         return self.state
 
     def step(self, action):
@@ -184,6 +186,7 @@ class FrameEnv():
         if self.showLog :
             self.logList[-1].append("A(t+1)="+str(self.targetA))
             self.logList.append([])
+            self.logList[-1].append("A(t)="+str(self.targetA))
         self.net = self._get_sNet()
         self.curFrameIdx += (a+1)
         if self.isRun :

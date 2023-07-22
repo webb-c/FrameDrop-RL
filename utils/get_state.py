@@ -22,22 +22,22 @@ def get_state_distriburtion(model, data) :
     ax.set_zlabel('state : network')
     ax.legend()
     # plt.show()
-    plt.savefig('results/cluster.png')
+    plt.savefig('results/cluster_(1_1).png')
 
 def cluster_init(k=10):
     model = KMeans(n_clusters=k, n_init=10, random_state=42)
     return model
     
-def cluster_train(model, data, visualize=False):
+def cluster_train(model, data, clusterPath, visualize=False):
     model.fit(data)
-    joblib.dump(model, 'models/cluster.pkl')
+    joblib.dump(model, clusterPath)
     if visualize :
         get_state_distriburtion(model, data)
     return model
 
 
-def cluster_load():
-    model = joblib.load("models/cluster.pkl")
+def cluster_load(clusterPath):
+    model = joblib.load(clusterPath)
     return model
 
 

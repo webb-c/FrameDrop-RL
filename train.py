@@ -9,11 +9,11 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train
 # hyperparameter -> change parameter using argparse
 # for episode : frame count 9000
-stateNum = 20
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
 resultPath = "utils/yolov5/runs/detect/exp2/labels"
-qTablePath = "models/q_table_1.npy"
+qTablePath = "models/q_table_(1_1).npy"
+clusterPath = "models/cluster_(1_1).pkl"
 logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 fps = 30
@@ -26,8 +26,9 @@ eps_min = 0.1
 episoode_maxlen = 300
 epi_actions = 1000
 
+stateNum = 20
 data_len=1000
-data_maxlen=10000
+data_maxlen=20000
 replayBuffer_len=1000
 replayBuffer_maxlen=20000
 
@@ -43,7 +44,7 @@ def _main():
 
     # isDetectionexist = False
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist, isRun=False)   # etc
+    envV = FrameEnv(videoName=videoName, videoPath=videoPath, clusterPath=clusterPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist, isRun=False)   # etc
     agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum, isRun=False)
     #
     for epi in range(episoode_maxlen):       
