@@ -280,7 +280,7 @@ class FrameEnv():
             inv_importance = 10*(1 - self.objNumList[self.idx + f] / maxNum) if maxNum != 0 else 0
             self.iList.append(inv_importance)
         A_diff = self.prevA - self.sendA
-        A_ratio = self.sendA / self.prevA
+        A_ratio = (self.sendA / self.prevA) if self.prevA != 0 else 0
         for i in range(length):
             s, a, s_prime = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
