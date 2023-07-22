@@ -75,6 +75,7 @@ def _main():
         envV.omnet.get_omnet_message()
         envV.omnet.send_omnet_message("finish")
         isDetectionexist = True
+        print("sum of A(t) : ", envV.ASum, "| sum of a(t) : ", envV.aSum)
     envV.omnet.close_pipe()
     return agentV.get_q_table()
 

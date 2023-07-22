@@ -54,6 +54,9 @@ class FrameEnv():
             self.model = cluster_load()
         if not self.isRun :
             self._detect(self.isDetectionexist)
+        # record
+        self.ASum = 0
+        self.aSum = 0
         # state
         self.reset()
         if self.isRun :
@@ -64,12 +67,15 @@ class FrameEnv():
             
     def reset(self, isClusterexist=False):
         self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
+        self.ASum = 0
+        self.aSum = 0
         self.iList = []
         self.isClusterexist = isClusterexist
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
         self.curFrameIdx = 1
         self.prevA = self.fps
+        self.ASum += self.prevA
         self.targetA = self.fps
         _, f1 = self.cap.read()
         _, f2 = self.cap.read()
@@ -159,6 +165,8 @@ class FrameEnv():
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
         # print("new A :", newA)
+        self.aSum += len(self.processList)
+        self.ASum += self.prevA
         self.prev_frame = self.frameList[-1]
         self.frame = temp
         self.frameList = [self.frame]
