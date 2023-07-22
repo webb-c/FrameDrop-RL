@@ -31,7 +31,7 @@ data_maxlen=10000
 replayBuffer_len=1000
 replayBuffer_maxlen=30000
 
-alpha = 0.5  # R Net between R Acc
+alpha = 0.8  # R Net between R Acc
 beta = 2     # R Net's penalty weight
 lr = 0.1     # learning rate
 gamma = 0.9  # immediate and future
@@ -40,15 +40,19 @@ gamma = 0.9  # immediate and future
 def _main():
     isClusterexist = False
     isDetectionexist = True
+
     # isDetectionexist = False
     writer = SummaryWriter(logdir)
     envV = FrameEnv(videoName=videoName, videoPath=videoPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist, isRun=False)   # etc
     agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum, isRun=False)
     #
-    for epi in range(episoode_maxlen):          
+    for epi in range(episoode_maxlen):       
         print("episode :", epi)
         done = False
+        cluterVisualize = False
         showLog = False
+        if (epi % 50) == 0 or epi == episoode_maxlen-1 :
+            cluterVisualize = True
         if (epi % 10) == 0 :
             showLog = True
         s = envV.reset(isClusterexist=isClusterexist, showLog=showLog)
@@ -64,7 +68,7 @@ def _main():
         if len(envV.data) > data_len :
             if not isClusterexist :
                 print("clustering ... ")
-            envV.model = cluster_train(envV.model, np.array(envV.data), visualize=True)
+            envV.model = cluster_train(envV.model, np.array(envV.data), visualize=cluterVisualize)
             isClusterexist = True
         if isClusterexist :
             agentV.decrease_eps()

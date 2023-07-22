@@ -65,7 +65,7 @@ class FrameEnv():
             self.outVideoPath = outVideoPath
             self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
             
-    def reset(self, isClusterexist=False, showLog=False):
+    def reset(self, isClusterexist=False, showLog=False) :
         self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
         self.ASum = 0
         self.aSum = 0
@@ -135,8 +135,8 @@ class FrameEnv():
                     self.transList[-1].append(self.state)
                 # curr_trans (s, a)
                 self.transList.append([self.state, action])
-                if self.showLog :
-                    self.logList[-1].append(action)
+            if self.showLog :
+                self.logList[-1].append(action)
             # print("state: ",self.originState,"action: ", action)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
@@ -162,8 +162,8 @@ class FrameEnv():
                 self.transList[-1].append(self.state)  
             # curr_trans (s, a)
             self.transList.append([self.state, a])
-            if self.showLog :
-                    self.logList[-1].append(a)
+        if self.showLog :
+            self.logList[-1].append(a)
         # print("state: ",self.originState,"action: ", a)
         self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("action")
@@ -181,7 +181,8 @@ class FrameEnv():
         self.prevA = self.targetA
         self.targetA = newA
         if self.showLog :
-            self.logList[-1].append("A(t+1) = ", str(self.targetA))
+            self.logList[-1].append("A(t+1)="+str(self.targetA))
+            self.logList.append([])
         self.net = self._get_sNet()
         self.curFrameIdx += (a+1)
         if self.isRun :
@@ -204,9 +205,8 @@ class FrameEnv():
             # curr_trans (s, a)
             if self.isClusterexist : 
                 self.transList = [[self.state, na]]
-                if self.showLog :
-                    self.logList.append([])
-                    self.logList[-1].append(na)
+            if self.showLog :
+                self.logList[-1].append(na)
             # print("state: ",self.originState,"action: ", na)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
@@ -317,7 +317,7 @@ class FrameEnv():
         return
 
     def trans_show(self) :
-        for row in self.transList :
+        for row in self.logList :
             print(row)
         return
 
