@@ -96,10 +96,11 @@ class FrameEnv():
             ret, temp = self.cap.read()
             if not ret:
                 self.cap.release()
-                self.processedFrameList += self.processList
-                for frame in self.processedFrameList :
-                    self.out.write(frame)
-                self.out.release()
+                if self.isRun :
+                    self.processedFrameList += self.processList
+                    for frame in self.processedFrameList :
+                        self.out.write(frame)
+                    self.out.release()
                 return -1, True
             if len(self.frameList) >= self.fps:
                 # call OMNeT++
@@ -161,13 +162,13 @@ class FrameEnv():
         self.prev_frame = self.frameList[-1]
         self.frame = temp
         self.frameList = [self.frame]
-        self.processedFrameList += self.processList
         self.processList = [self.frame]
         self.prevA = self.targetA
         self.targetA = newA
         self.net = self._get_sNet()
         self.curFrameIdx += (a+1)
         if self.isRun :
+            self.processedFrameList += self.processList
             self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
         else :
             self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
@@ -234,6 +235,13 @@ class FrameEnv():
         
     def _get_reward(self):
         length = len(self.transList)
+        r_blur_Max = 10
+        r_blur_Min = 0
+        r_dup_Max = 29
+        r_dup_Min = 0
+        r_net_Max = 45
+        r_net_Mid = 0
+        r_net_Min = -45
         # get importance
         for f in range(self.fps) :
             ww = self.w//2
@@ -263,10 +271,16 @@ class FrameEnv():
             r_dup = sum(self.F1List)
             # r_net
             if A_diff >= 0 :
-                r_net = (a/self.fps)*(A_diff) + self.targetA
+                r_net = (a/self.fps) * (A_diff+0.5*self.targetA)
+                r_net = (r_net - r_net_Mid) / (r_net_Max - r_net_Mid)
             else :
-                r_net = self.beta * (1-a/self.fps)*(A_diff) + self.targetA
-            r_net = r_net / 10
+                r_net = (1-a/self.fps) * (A_diff+0.5*(self.targetA-30))
+                r_net = (r_net - r_net_Min) / (r_net_Mid - r_net_Min)
+                r_net *= (-1)*(self.beta)
+                
+            r_blur = (r_blur - r_blur_Min) / (r_blur_Max - r_blur_Min)
+            r_dup = (r_dup - r_dup_Min) / (r_dup_Max - r_dup_Min)
+
             r = (1 - self.alpha) * (r_blur + r_dup) + self.alpha * (r_net)
             self.transList[i].append(r)
             self.idx += a+1

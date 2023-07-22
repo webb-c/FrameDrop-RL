@@ -12,7 +12,7 @@ from utils.get_state import cluster_train
 stateNum = 20
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
-resultPath = "utils/yolov5/runs/detect/exp3/labels"
+resultPath = "utils/yolov5/runs/detect/exp2/labels"
 qTablePath = "models/q_table_1.npy"
 logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -35,6 +35,7 @@ alpha = 0.5  # R Net between R Acc
 beta = 2     # R Net's penalty weight
 lr = 0.1     # learning rate
 gamma = 0.9  # immediate and future
+# V 1000000
 
 def _main():
     isClusterexist = False
