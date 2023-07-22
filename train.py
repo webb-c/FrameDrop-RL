@@ -48,7 +48,10 @@ def _main():
     for epi in range(episoode_maxlen):          
         print("episode :", epi)
         done = False
-        s = envV.reset(isClusterexist=isClusterexist)
+        showLog = False
+        if (epi % 10) == 0 :
+            showLog = True
+        s = envV.reset(isClusterexist=isClusterexist, showLog=showLog)
         while not done:
             a = agentV.get_action(s)
             s, done = envV.step(a)
@@ -71,6 +74,8 @@ def _main():
             writer.add_scalar("Reward/total", envV.reward_sum[3], epi)
         if (epi % 50) == 0:
             agentV.Q_show()
+        if showLog :
+            envV.trans_show()
         print("buffer size: ", envV.buffer.size())
         envV.omnet.get_omnet_message()
         envV.omnet.send_omnet_message("finish")

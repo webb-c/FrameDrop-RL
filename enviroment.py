@@ -65,12 +65,13 @@ class FrameEnv():
             self.outVideoPath = outVideoPath
             self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
             
-    def reset(self, isClusterexist=False):
+    def reset(self, isClusterexist=False, showLog=False):
         self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
         self.ASum = 0
         self.aSum = 0
         self.iList = []
         self.isClusterexist = isClusterexist
+        self.showLog = showLog
         self.cap = cv2.VideoCapture(self.videoPath)
         self.idx = 0
         self.curFrameIdx = 1
@@ -92,6 +93,8 @@ class FrameEnv():
         if self.isClusterexist :
             self.transList = []
             self.state = cluster_pred(self.originState, self.model)
+        if self.showLog :   
+            self.logList = [[]]
         return self.state
 
     def step(self, action):
@@ -132,6 +135,8 @@ class FrameEnv():
                     self.transList[-1].append(self.state)
                 # curr_trans (s, a)
                 self.transList.append([self.state, action])
+                if self.showLog :
+                    self.logList[-1].append(action)
             # print("state: ",self.originState,"action: ", action)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
@@ -157,6 +162,8 @@ class FrameEnv():
                 self.transList[-1].append(self.state)  
             # curr_trans (s, a)
             self.transList.append([self.state, a])
+            if self.showLog :
+                    self.logList[-1].append(a)
         # print("state: ",self.originState,"action: ", a)
         self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("action")
@@ -173,6 +180,8 @@ class FrameEnv():
         self.processList = [self.frame]
         self.prevA = self.targetA
         self.targetA = newA
+        if self.showLog :
+            self.logList[-1].append("A(t+1) = ", str(self.targetA))
         self.net = self._get_sNet()
         self.curFrameIdx += (a+1)
         if self.isRun :
@@ -195,6 +204,9 @@ class FrameEnv():
             # curr_trans (s, a)
             if self.isClusterexist : 
                 self.transList = [[self.state, na]]
+                if self.showLog :
+                    self.logList.append([])
+                    self.logList[-1].append(na)
             # print("state: ",self.originState,"action: ", na)
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("action")
@@ -302,6 +314,11 @@ class FrameEnv():
             # print("r_net:", r_net)
             # print("R:", r)
             # print("==================")
+        return
+
+    def trans_show(self) :
+        for row in self.transList :
+            print(row)
         return
 
 class Communicator(Exception):
