@@ -23,15 +23,15 @@ eps_init = 1
 eps_decrese = 0.01
 eps_min = 0.1
 
-episoode_maxlen = 500
+episoode_maxlen = 300
 epi_actions = 1000
 
 data_len=1000
 data_maxlen=10000
 replayBuffer_len=1000
-replayBuffer_maxlen=30000
+replayBuffer_maxlen=20000
 
-alpha = 0.8  # R Net between R Acc
+alpha = 0.7  # R Net between R Acc
 beta = 2     # R Net's penalty weight
 lr = 0.1     # learning rate
 gamma = 0.9  # immediate and future

@@ -172,8 +172,9 @@ class FrameEnv():
         self.data.append(self.originState)
         # new state (curr_trans s_prime)
         # print("new A :", newA)
-        self.aSum += len(self.processList)
-        self.ASum += self.prevA
+        self.sendA = len(self.processList)
+        self.aSum += self.sendA
+        self.ASum += self.targetA
         self.prev_frame = self.frameList[-1]
         self.frame = temp
         self.frameList = [self.frame]
@@ -259,9 +260,9 @@ class FrameEnv():
         r_blur_Min = 0
         r_dup_Max = 29
         r_dup_Min = 0
-        r_net_Max = 45
-        r_net_Mid = 0
-        r_net_Min = -45
+        # r_net_Max = 45
+        # r_net_Mid = 0
+        # r_net_Min = 1
         # get importance
         for f in range(self.fps) :
             ww = self.w//2
@@ -278,7 +279,8 @@ class FrameEnv():
             if self.idx+f > len(self.objNumList) : break   
             inv_importance = 10*(1 - self.objNumList[self.idx + f] / maxNum) if maxNum != 0 else 0
             self.iList.append(inv_importance)
-        A_diff = self.targetA - self.prevA
+        A_diff = self.prevA - self.sendA
+        A_ratio = self.sendA / self.prevA
         for i in range(length):
             s, a, s_prime = self.transList[i]
             # request addition (YOLO -> self.frameList detect)
@@ -291,13 +293,9 @@ class FrameEnv():
             r_dup = sum(self.F1List)
             # r_net
             if A_diff >= 0 :
-                r_net = (a/self.fps) * (A_diff+0.5*self.targetA)
-                r_net = (r_net - r_net_Mid) / (r_net_Max - r_net_Mid)
+                r_net = (a/self.fps) * (A_ratio)
             else :
-                r_net = (1-a/self.fps) * (A_diff+0.5*(self.targetA-30))
-                r_net = (r_net - r_net_Min) / (r_net_Mid - r_net_Min)
-                r_net *= (-1)*(self.beta)
-                
+                r_net = (1-a/self.fps) * (-1) * (self.beta)       
             r_blur = (r_blur - r_blur_Min) / (r_blur_Max - r_blur_Min)
             r_dup = (r_dup - r_dup_Min) / (r_dup_Max - r_dup_Min)
 
