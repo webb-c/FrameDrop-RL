@@ -102,7 +102,7 @@ class FrameEnv():
     def step(self, action):
         # skipping
         guided = False
-        start = False
+        needToUdate = True
         for a in range(action+1):
             ret, temp = self.cap.read()
             if not ret:
@@ -121,11 +121,11 @@ class FrameEnv():
                 ratioA = float(self.omnet.get_omnet_message())
                 self.omnet.send_omnet_message("ACK")
                 newA = math.floor(ratioA*(self.fps))
-                start = self._triggered_by_guide(newA, temp, action, a)
+                needToUdate = self._triggered_by_guide(newA, temp, action, a)
             else:
                 self.frameList.append(temp)
 
-        if not start : 
+        if needToUdate : 
             self.prev_frame = self.frameList[-2]
             self.frame = self.frameList[-1]
             self.processList.append(self.frame)
@@ -221,8 +221,8 @@ class FrameEnv():
             #     print("error in action")
             #     return
             self.curFrameIdx += (na+1)
-            return False
-        return True
+            return True
+        return False
     
     def _get_sNet(self):
         return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
@@ -296,9 +296,9 @@ class FrameEnv():
             r_dup = sum(self.F1List)
             # r_net
             if A_diff >= 0 :
-                r_net = (a/self.fps) * (A_ratio)
+                r_net = 2 * (a/self.fps)
             else :
-                r_net = (1-a/self.fps) * (-1) * (self.beta)       
+                r_net = (-2) * (1 - a/self.fps)   
             r_blur = (r_blur - r_blur_Min) / (r_blur_Max - r_blur_Min)
             r_dup = (r_dup - r_dup_Min) / (r_dup_Max - r_dup_Min)
 

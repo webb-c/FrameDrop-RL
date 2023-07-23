@@ -12,8 +12,8 @@ from utils.get_state import cluster_train
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
 resultPath = "utils/yolov5/runs/detect/exp2/labels"
-qTablePath = "models/q_table_(1_1).npy"
-clusterPath = "models/cluster_(1_1).pkl"
+qTablePath = "models/q_table_(1_3).npy"
+clusterPath = "models/cluster_(1_3).pkl"
 logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 fps = 30
@@ -26,7 +26,7 @@ eps_min = 0.1
 episoode_maxlen = 300
 epi_actions = 1000
 
-stateNum = 20
+stateNum = 15
 data_len=1000
 data_maxlen=20000
 replayBuffer_len=1000
@@ -69,7 +69,7 @@ def _main():
         if len(envV.data) > data_len :
             if not isClusterexist :
                 print("clustering ... ")
-            envV.model = cluster_train(envV.model, np.array(envV.data), visualize=cluterVisualize)
+            envV.model = cluster_train(envV.model, np.array(envV.data),  clusterPath=clusterPath, visualize=cluterVisualize)
             isClusterexist = True
         if isClusterexist :
             agentV.decrease_eps()

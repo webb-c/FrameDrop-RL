@@ -6,3 +6,6 @@ data/*
 *.pt
 __pycache__
 *.pkl
+*.mp4
+*.npy
+!FFT_List.npy

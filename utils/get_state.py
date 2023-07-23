@@ -22,7 +22,7 @@ def get_state_distriburtion(model, data) :
     ax.set_zlabel('state : network')
     ax.legend()
     # plt.show()
-    plt.savefig('results/cluster_(1_1).png')
+    plt.savefig('results/cluster_(1_3).png')
 
 def cluster_init(k=10):
     model = KMeans(n_clusters=k, n_init=10, random_state=42)
