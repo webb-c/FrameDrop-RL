@@ -10,7 +10,7 @@ random.seed(42)
 INF = float("inf")
 
 class Agent():
-    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, isRun=False):
+    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, isRun=False, masking=True):
         self.eps = eps_init
         self.eps_decrese = eps_decrese
         self.eps_min = eps_min
@@ -18,6 +18,7 @@ class Agent():
         self.gamma = gamma
         self.stateNum = stateNum
         self.fps = fps
+        self.masking = masking
         if len(qTable) > 0 : 
             self.qTable = qTable
         else :
@@ -40,22 +41,27 @@ class Agent():
                     break
                 temp_vec[action] = (-1)*INF
         else :
-            # no_masked
             if randAction :
                 action = random.choice(self.actionSpace[:])
             # masked
             else : 
                 p = random.random()
                 if p < self.eps :  # exploration
-                    action = random.choice(self.actionSpace[requireskip:])
-                else:  # exploitation
+                    if self.masking : 
+                        action = random.choice(self.actionSpace[requireskip:])
+                    else : 
+                        action = random.choice(self.actionSpace[:])
+                else:  
                     temp = copy.deepcopy(self.qTable[s, :])
                     temp_vec = temp.flatten()
-                    while True :
+                    if self.masking : 
+                        while True :
+                            action = np.argmax(temp_vec)
+                            if action >= requireskip :
+                                break
+                            temp_vec[action] = (-1)*INF
+                    else :
                         action = np.argmax(temp_vec)
-                        if action >= requireskip :
-                            break
-                        temp_vec[action] = (-1)*INF
         return action
 
     def Q_update(self, trans):

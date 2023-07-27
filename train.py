@@ -3,7 +3,7 @@ for offline-training
 
 Example of Usage :
     mask : 
-    $ python train.py -qp models/q_table_2(mask) -cp models/cluster_2(mask).pkl -m True
+    $ python train.py -qp models/q_table_mask__1 -cp models/cluster_mask__1.pkl -m True
     
     unmask : 
     $ python train.py -qp models/q_table_2(unmask) -cp models/cluster_2(unmask).pkl -m False
@@ -16,6 +16,7 @@ import datetime
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train
+from utils.yolov5.utils.general import print_args
 
 def _save_q_table(qTable, filePath="models/q_table.npy") :
     print("save!")
@@ -74,19 +75,11 @@ def _main(opt):
     masking = opt.masking
     isClusterexist = opt.isClusterexist
     
-    episoode_maxlen = 300
-    epi_actions = 500
-    data_len=500
-    data_maxlen=10000
-    replayBuffer_len=1000
-    replayBuffer_maxlen=20000
-    gamma = 0.9 
-    
-    print(masking)
+    print_args(vars(opt))
     
     writer = SummaryWriter(logdir)
     envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=opt.detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking)   # etc
-    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False)
+    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking)
     randAction = True
     for epi in range(episoode_maxlen):       
         print("episode :", epi)
@@ -102,8 +95,7 @@ def _main(opt):
             a = agentV.get_action(s, requireSkip, randAction)
             s, done = envV.step(a)
         if envV.buffer.size() > replayBuffer_len:
-            if masking :
-                randAction = False
+            randAction = False
             print("Q update ...")
             for _ in range(epi_actions):  # # of sampling count
                 trans = envV.buffer.get()
