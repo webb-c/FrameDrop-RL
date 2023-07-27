@@ -46,5 +46,6 @@ def cluster_pred(originState, model):
     return s
 
 if __name__ == "__main__":
-    data = []
-    get_state_distriburtion(data)
+    # data = []
+    # get_state_distriburtion(data)
+    print("non-eror")
