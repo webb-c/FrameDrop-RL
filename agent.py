@@ -40,19 +40,22 @@ class Agent():
                     break
                 temp_vec[action] = (-1)*INF
         else :
-            p = random.random()
+            # no_masked
             if randAction :
                 action = random.choice(self.actionSpace[:])
-            elif p < self.eps :  # exploration
-                action = random.choice(self.actionSpace[requireskip:])
-            else:  # exploitation
-                temp = copy.deepcopy(self.qTable[s, :])
-                temp_vec = temp.flatten()
-                while True :
-                    action = np.argmax(temp_vec)
-                    if action >= requireskip :
-                        break
-                    temp_vec[action] = (-1)*INF
+            # masked
+            else : 
+                p = random.random()
+                if p < self.eps :  # exploration
+                    action = random.choice(self.actionSpace[requireskip:])
+                else:  # exploitation
+                    temp = copy.deepcopy(self.qTable[s, :])
+                    temp_vec = temp.flatten()
+                    while True :
+                        action = np.argmax(temp_vec)
+                        if action >= requireskip :
+                            break
+                        temp_vec[action] = (-1)*INF
         return action
 
     def Q_update(self, trans):

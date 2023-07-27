@@ -39,9 +39,9 @@ class FrameEnv():
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
         if masking :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_3", 200000)
         else : 
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_4", 200000)
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath
@@ -220,10 +220,11 @@ class FrameEnv():
     def _get_reward(self):
         # get importance
         # normalizatino range
-        rMin = 0
-        rMax = 1
-        rNewMin = -1
-        rNewMax = 1
+        # rMin = 0
+        # rMax = 1
+        # rNewMin = -1
+        # rNewMax = 1
+        
         for f in range(self.fps) :
             ww = self.w//2
             sIdx = max(0, f-ww)
@@ -238,11 +239,13 @@ class FrameEnv():
             maxNum = max(self.objNumList[self.curFrameIdx+sIdx : eIdx+1])
             if self.curFrameIdx+f > len(self.objNumList) : break   
             importance = (self.objNumList[self.curFrameIdx + f] / maxNum) if maxNum != 0 else 0
-            self.iList.append(importance)
+            normalizedImportance = 2*(importance) - 1
+            self.iList.append(normalizedImportance)
 
         _, s, a, s_prime = self.transList
-        origin_r = (sum(self.iList[self.curFrameIdx+a+1:]) - sum(self.iList[self.curFrameIdx:self.curFrameIdx+a+1]))
-        r = (origin_r - rMin) * (rNewMax - rNewMin) / (rMax - rMin) + rNewMin
+        # origin_r = (sum(self.iList[self.curFrameIdx+a+1:]) - sum(self.iList[self.curFrameIdx:self.curFrameIdx+a+1]))
+        r = (sum(self.iList[self.curFrameIdx+a+1:]) - sum(self.iList[self.curFrameIdx:self.curFrameIdx+a+1]))
+        # r = (origin_r - rMin) * (rNewMax - rNewMin) / (rMax - rMin) + rNewMin
         self.transList.append(r)
         self.curFrameIdx += self.fps
         self.reward_sum += r
