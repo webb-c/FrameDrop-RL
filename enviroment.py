@@ -196,9 +196,9 @@ class FrameEnv():
                 self.FFTList.append(blur)
             cap.release()
             # np.save(filePath, qTable)
-            np.save("models/FFT_List.npy", self.FFTList)
+            np.save("models/FFT_List_Jackson_1.npy", self.FFTList)
         else : 
-            self.FFTList = np.load("models/FFT_List.npy")
+            self.FFTList = np.load("models/FFT_List_Jackson_1.npy")
         return
     
     def _detect(self, exist=True):
