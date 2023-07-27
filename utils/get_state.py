@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
-def get_state_distriburtion(model, data) :
+def get_state_distriburtion(model, data, savePath) :
     labels  = model.predict(data)
     centers = model.cluster_centers_
     dfData = pd.DataFrame(data, columns=['X', 'Y'])
@@ -27,11 +27,17 @@ def cluster_init(k=10):
     model = KMeans(n_clusters=k, n_init=10, random_state=42)
     return model
     
-def cluster_train(model, data, clusterPath, visualize=False):
+def cluster_train(model, data, clusterPath, visualize=False, masking=True):
     model.fit(data)
     joblib.dump(model, clusterPath)
     if visualize :
-        get_state_distriburtion(model, data)
+        if masking : 
+            savePath = "results/cluster_2(mask).png"
+        else : 
+            savePath = "results/cluster_2(unmask).png"
+        get_state_distriburtion(model, data, savePath)
+
+            
     return model
 
 

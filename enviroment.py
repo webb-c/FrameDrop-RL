@@ -33,12 +33,15 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, outVideoPath="./output.mp4"):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, masking=True, outVideoPath="./output.mp4"):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
-        self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+        if masking :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+        else : 
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath
@@ -278,6 +281,7 @@ class Communicator(Exception):
 
     def init_pipe(self, pipeName, buffer_size):
         pipe = None
+        print(pipeName)
         print("waiting connect OMNeT++ ...")
         try:
             pipe = win32pipe.CreateNamedPipe(
