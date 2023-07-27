@@ -21,9 +21,8 @@ class ReplayBuffer():
     def __init__(self, buffer_size):
         self.buffer = collections.deque(maxlen=buffer_size)
 
-    def put(self, transList):
-        for trans in transList:
-            self.buffer.append(trans)
+    def put(self, trans):
+        self.buffer.append(trans)
             
     def get(self):
         trans = random.choice(self.buffer)  # batch size = 1
@@ -34,7 +33,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, alpha=0.5, beta=2, w=5, stateNum=20, isDetectionexist=True, isClusterexist=False, isRun=False, outVideoPath="./output.mp4"):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, outVideoPath="./output.mp4"):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
@@ -46,9 +45,8 @@ class FrameEnv():
         self.fps = fps
         self.isRun = isRun
         self.clusterPath = clusterPath
+        self.capIdx = 0
         # hyper-parameter
-        self.alpha = alpha 
-        self.beta = beta
         self.w = w
         self.model = cluster_init(k=stateNum)
         if self.isClusterexist :  
@@ -58,6 +56,7 @@ class FrameEnv():
         # record
         self.ASum = 0
         self.aSum = 0
+        self.skipTime = 0
         # state
         self.reset()
         if self.isRun :
@@ -67,43 +66,48 @@ class FrameEnv():
             self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
             
     def reset(self, isClusterexist=False, showLog=False) :
-        self.reward_sum = [0, 0, 0, 0] # r_dup, r_blur, r_net, r_total
+        self.reward_sum = 0 # r_dup, r_blur, r_net, r_total
+        self.skipTime = 0
         self.ASum = 0
         self.aSum = 0
         self.iList = []
         self.isClusterexist = isClusterexist
         self.showLog = showLog
         self.cap = cv2.VideoCapture(self.videoPath)
-        self.idx = 0
-        self.curFrameIdx = 1
+        self.curFrameIdx = 0
         self.prevA = self.fps
-        self.ASum += self.prevA
         self.targetA = self.fps
         _, f1 = self.cap.read()
-        _, f2 = self.cap.read()
-        self.frameList = [f1, f2]
-        self.processList = [f2]
-        self.prev_frame = self.frameList[-2]
-        self.frame = self.frameList[-1]
-        self.net = self._get_sNet()
+        self.capIdx = 0
+        self.frameList = [f1]
+        self.processList = []
+        self.prev_frame = f1
+        self.frame = f1
         if self.isRun :
-            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+            self.originState = [0, get_FFT(self.frame)]
         else :
-            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
+            self.originState = [0, self.FFTList[self.curFrameIdx]]
         self.state = 0
         if self.isClusterexist :
             self.transList = []
             self.state = cluster_pred(self.originState, self.model)
         if self.showLog :   
-            self.logList = [[]]
-            self.logList[-1].append("A(t)="+str(self.targetA))
+            self.logList = []
         return self.state
 
     def step(self, action):
         # skipping
-        guided = False
-        needToUdate = True
-        for a in range(action+1):
+        if action == 0 : 
+            self.omnet.get_omnet_message()
+            self.omnet.send_omnet_message("action")
+            self.omnet.get_omnet_message()
+            self.omnet.send_omnet_message(str((self.skipTime+1)/self.fps))
+            self.processList.append(self.frame)
+            self.skipTime = 0
+        if action == self.fps :
+            self.skipTime += self.fps
+        for a in range(1, self.fps):
+            self.capIdx += 1
             ret, temp = self.cap.read()
             if not ret:
                 self.cap.release()
@@ -113,119 +117,72 @@ class FrameEnv():
                         self.out.write(frame)
                     self.out.release()
                 return -1, True
-            if len(self.frameList) >= self.fps:
-                # call OMNeT++
-                guided = True
+            self.frameList.append(temp)
+            if a == action :
+                self.processList.append(temp)
                 self.omnet.get_omnet_message()
-                self.omnet.send_omnet_message("reward") 
-                ratioA = float(self.omnet.get_omnet_message())
-                self.omnet.send_omnet_message("ACK")
-                newA = math.floor(ratioA*(self.fps))
-                needToUdate = self._triggered_by_guide(newA, temp, action, a)
-            else:
-                self.frameList.append(temp)
-
-        if needToUdate : 
-            self.prev_frame = self.frameList[-2]
-            self.frame = self.frameList[-1]
-            self.processList.append(self.frame)
+                self.omnet.send_omnet_message("action")
+                self.omnet.get_omnet_message()
+                self.omnet.send_omnet_message(str((self.skipTime+action+1)/self.fps))
+                self.skipTime = 0
+            elif a > action : 
+                self.processList.append(temp)
+                self.omnet.get_omnet_message()
+                self.omnet.send_omnet_message("action")
+                self.omnet.get_omnet_message()
+                self.omnet.send_omnet_message(str((1)/self.fps))
+        # new
+        self.prev_frame = self.frameList[-1]
+        ret, self.frame = self.cap.read()
+        self.capIdx += 1
+        if not ret:
+            self.cap.release()
+            if self.isRun :
+                for frame in self.processedFrameList :
+                    self.out.write(frame)
+                self.out.release()
+            return -1, True
         
-        if not guided:
-            # prev_trans append s_prime
-            if self.isClusterexist :
-                if len(self.transList) > 0 :
-                    self.transList[-1].append(self.state)
-                # curr_trans (s, a)
-                self.transList.append([self.state, action])
-            if self.showLog :
-                self.logList[-1].append(action)
-            # print("state: ",self.originState,"action: ", action)
-            self.omnet.get_omnet_message()
-            self.omnet.send_omnet_message("action")
-            self.omnet.get_omnet_message()
-            self.omnet.send_omnet_message(str((action+1)/self.fps))
-            self.data.append(self.originState)
-            self.curFrameIdx += (action+1)
+        self.omnet.get_omnet_message()
+        self.omnet.send_omnet_message("reward") 
+        ratioA = float(self.omnet.get_omnet_message())
+        self.omnet.send_omnet_message("ACK")
         
-        self.net = self._get_sNet()
-        if self.isRun :
-            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
-        else :
-            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
-        if self.isClusterexist :
-            self.state = cluster_pred(self.originState, self.model)
+        newA = math.floor(ratioA*(self.fps))
+        self._triggered_by_guide(newA, action)
+        
         return self.state, False
 
-    def _triggered_by_guide(self, newA, temp, action, a):
-        # subTask 1
-        # prev_trans append s_prime
-        if self.isClusterexist :
-            if len(self.transList) > 0 :
-                self.transList[-1].append(self.state)  
-            # curr_trans (s, a)
-            self.transList.append([self.state, a])
-        if self.showLog :
-            self.logList[-1].append(a)
-        # print("state: ",self.originState,"action: ", a)
-        self.omnet.get_omnet_message()
-        self.omnet.send_omnet_message("action")
-        self.omnet.get_omnet_message()
-        self.omnet.send_omnet_message(str((a+1)/self.fps))
-        self.data.append(self.originState)
-        # new state (curr_trans s_prime)
-        # print("new A :", newA)
-        self.sendA = len(self.processList)
+    def _triggered_by_guide(self, newA, action):
+        self.sendA = self.fps - action
         self.aSum += self.sendA
         self.ASum += self.targetA
-        self.prev_frame = self.frameList[-1]
-        self.frame = temp
+        if self.isClusterexist :
+            self.transList.append(self.fps-self.targetA)
+            self.transList.append(self.state)
+            self.transList.append(action)
         self.frameList = [self.frame]
         self.processList = [self.frame]
         self.prevA = self.targetA
         self.targetA = newA
-        if self.showLog :
-            self.logList[-1].append("A(t+1)="+str(self.targetA))
-            self.logList.append([])
-            self.logList[-1].append("A(t)="+str(self.targetA))
-        self.net = self._get_sNet()
-        self.curFrameIdx += (a+1)
+        
+        self.data.append(self.originState)
+        # new state
         if self.isRun :
             self.processedFrameList += self.processList
-            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame), self.net]
+            self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame)]
         else :
-            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx], self.net]
+            self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx+self.fps]]
         if self.isClusterexist :
             self.state = cluster_pred(self.originState, self.model)
-            # curr_trans append s_prime
-            self.transList[-1].append(self.state)
+            self.transList.append(self.state)
             # reward
             if not self.isRun :
                 self._get_reward()
-            self.buffer.put(self.transList[:])
+            self.buffer.put(self.transList)
+            # print(self.transList)
             self.transList = []
-        # subTask 2
-        na = action-a-1
-        if na >= 0:
-            # curr_trans (s, a)
-            if self.isClusterexist : 
-                self.transList = [[self.state, na]]
-            if self.showLog :
-                self.logList[-1].append(na)
-            # print("state: ",self.originState,"action: ", na)
-            self.omnet.get_omnet_message()
-            self.omnet.send_omnet_message("action")
-            self.omnet.get_omnet_message()
-            self.omnet.send_omnet_message(str((na+1)/self.fps))
-            # ret = self.omnet.get_omnet_message()
-            # if ret != "ACK" :
-            #     print("error in action")
-            #     return
-            self.curFrameIdx += (na+1)
-            return True
         return False
-    
-    def _get_sNet(self):
-        return (self.targetA - len(self.processList))/(self.fps + 1 - len(self.frameList))
     
     def _get_FFT_List(self, exist=True):
         if not exist : 
@@ -256,16 +213,8 @@ class FrameEnv():
             with open(filePath, 'r') as file :
                 lines = file.readlines()
                 self.objNumList.append(len(lines))
-        
+    
     def _get_reward(self):
-        length = len(self.transList)
-        r_blur_Max = 10
-        r_blur_Min = 0
-        r_dup_Max = 29
-        r_dup_Min = 0
-        # r_net_Max = 45
-        # r_net_Mid = 0
-        # r_net_Min = 1
         # get importance
         for f in range(self.fps) :
             ww = self.w//2
@@ -277,44 +226,27 @@ class FrameEnv():
                 eIdx += (ww-sGap)
             elif eGap < ww :
                 sIdx -= (ww-eGap)
-            eIdx = min(self.idx+eIdx, len(self.objNumList))
-            maxNum = max(self.objNumList[self.idx+sIdx : eIdx+1])
-            if self.idx+f > len(self.objNumList) : break   
-            inv_importance = 10*(1 - self.objNumList[self.idx + f] / maxNum) if maxNum != 0 else 0
-            self.iList.append(inv_importance)
-        A_diff = self.prevA - self.sendA
-        A_ratio = (self.sendA / self.prevA) if self.prevA != 0 else 0
-        for i in range(length):
-            s, a, s_prime = self.transList[i]
-            # request addition (YOLO -> self.frameList detect)
-            r_blur = (sum(self.iList[self.idx:self.idx+a+1]) / a) if a != 0 else 0
-            self.F1List = []
-            refFrame = self.resultPath+self.videoName+str(self.idx+1)+".txt"
-            for k in range(1, a+1) :
-                skipFrame = self.resultPath+self.videoName+str(self.idx+k+1)+".txt"
-                self.F1List.append(1 - get_F1(refFrame, skipFrame))
-            r_dup = sum(self.F1List)
-            # r_net
-            if A_diff >= 0 :
-                r_net = 2 * (a/self.fps)
-            else :
-                r_net = (-2) * (1 - a/self.fps)   
-            r_blur = (r_blur - r_blur_Min) / (r_blur_Max - r_blur_Min)
-            r_dup = (r_dup - r_dup_Min) / (r_dup_Max - r_dup_Min)
+            eIdx = min(self.curFrameIdx+eIdx, len(self.objNumList))
+            maxNum = max(self.objNumList[self.curFrameIdx+sIdx : eIdx+1])
+            if self.curFrameIdx+f > len(self.objNumList) : break   
+            importance = (self.objNumList[self.curFrameIdx + f] / maxNum) if maxNum != 0 else 0
+            self.iList.append(importance)
 
-            r = (1 - self.alpha) * (r_blur + r_dup) + self.alpha * (r_net)
-            self.transList[i].append(r)
-            self.idx += a+1
-            self.reward_sum[0] += r_blur
-            self.reward_sum[1] += r_dup
-            self.reward_sum[2] += r_net
-            self.reward_sum[3] += r
-            # print("===== reward =====")
-            # print("r_blur:", r_blur)
-            # print("r_dup:", r_dup)
-            # print("r_net:", r_net)
-            # print("R:", r)
-            # print("==================")
+        _, s, a, s_prime = self.transList
+        r = (sum(self.iList[self.curFrameIdx+a+1:]) - sum(self.iList[self.curFrameIdx:self.curFrameIdx+a+1]))
+
+        self.transList.append(r)
+        self.curFrameIdx += self.fps
+        self.reward_sum += r
+        
+        if self.showLog :
+            self.logList.append("A(t): "+str(self.prevA)+" action: "+str(a)+" A(t+1): "+str(self.targetA)+" reward: "+str(r))
+        # print("===== reward =====")
+        # print("r_blur:", r_blur)
+        # print("r_dup:", r_dup)
+        # print("r_net:", r_net)
+        # print("R:", r)
+        # print("==================")
         return
 
     def trans_show(self) :

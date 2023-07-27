@@ -9,20 +9,19 @@ from sklearn.cluster import KMeans
 def get_state_distriburtion(model, data) :
     labels  = model.predict(data)
     centers = model.cluster_centers_
-    dfData = pd.DataFrame(data, columns=['X', 'Y', 'Z'])
+    dfData = pd.DataFrame(data, columns=['X', 'Y'])
     
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(centers[:,0], centers[:,1], centers[:, 2], s =250, marker='*', c='red', label='centroids')
-    ax.scatter(dfData['X'], dfData['Y'], dfData['Z'], c=labels,s=40, cmap='winter')
+    ax = fig.add_subplot(111)
+    ax.scatter(centers[:,0], centers[:,1], s =250, marker='*', c='red', label='centroids')
+    ax.scatter(dfData['X'], dfData['Y'], c=labels,s=40, cmap='winter')
 
     ax.set_title('K-Means Clustering')
     ax.set_xlabel('state : MSE')
     ax.set_ylabel('state : blur')
-    ax.set_zlabel('state : network')
     ax.legend()
     # plt.show()
-    plt.savefig('results/cluster_(1_3).png')
+    plt.savefig('results/cluster_2.png')
 
 def cluster_init(k=10):
     model = KMeans(n_clusters=k, n_init=10, random_state=42)

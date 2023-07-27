@@ -12,8 +12,8 @@ from utils.get_state import cluster_train
 videoPath = "data/Jackson-1.mp4"
 videoName = "/Jackson-1_"
 resultPath = "utils/yolov5/runs/detect/exp2/labels"
-qTablePath = "models/q_table_(1_3).npy"
-clusterPath = "models/cluster_(1_3).pkl"
+qTablePath = "models/q_table_2"
+clusterPath = "models/cluster_2.pkl"
 logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 fps = 30
@@ -24,29 +24,28 @@ eps_decrese = 0.01
 eps_min = 0.1
 
 episoode_maxlen = 300
-epi_actions = 1000
+epi_actions = 500
 
 stateNum = 15
-data_len=1000
-data_maxlen=20000
+data_len=500
+data_maxlen=10000
 replayBuffer_len=1000
 replayBuffer_maxlen=20000
 
-alpha = 0.7  # R Net between R Acc
-beta = 2     # R Net's penalty weight
-lr = 0.1     # learning rate
+lr = 0.05     # learning rate
 gamma = 0.9  # immediate and future
 # V 1000000
 
 def _main():
     isClusterexist = False
     isDetectionexist = True
-
+    masking = True
+    
     # isDetectionexist = False
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=videoName, videoPath=videoPath, clusterPath=clusterPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, alpha=alpha, beta=beta, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist, isRun=False)   # etc
+    envV = FrameEnv(videoName=videoName, videoPath=videoPath, clusterPath=clusterPath, resultPath=resultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=fps, w=w, stateNum=stateNum, isDetectionexist=isDetectionexist, isClusterexist=isClusterexist, isRun=False)   # etc
     agentV = Agent(eps_init=eps_init, eps_decrese=eps_decrese, eps_min=eps_min, fps=fps, lr=lr, gamma=gamma, stateNum=stateNum, isRun=False)
-    #
+    randAction = True
     for epi in range(episoode_maxlen):       
         print("episode :", epi)
         done = False
@@ -54,31 +53,37 @@ def _main():
         showLog = False
         if (epi % 50) == 0 or epi == episoode_maxlen-1 :
             cluterVisualize = True
-        if (epi % 10) == 0 :
             showLog = True
         s = envV.reset(isClusterexist=isClusterexist, showLog=showLog)
         while not done:
-            a = agentV.get_action(s)
+            requireSkip = fps - envV.targetA
+            a = agentV.get_action(s, requireSkip, randAction)
             s, done = envV.step(a)
         if envV.buffer.size() > replayBuffer_len:
+            if masking :
+                randAction = False
             print("Q update ...")
             for _ in range(epi_actions):  # # of sampling count
                 trans = envV.buffer.get()
                 agentV.Q_update(trans)
+            agentV.decrease_eps()
         # cluster update
         if len(envV.data) > data_len :
             if not isClusterexist :
                 print("clustering ... ")
-            envV.model = cluster_train(envV.model, np.array(envV.data),  clusterPath=clusterPath, visualize=cluterVisualize)
+                envV.model = cluster_train(envV.model, np.array(envV.data),  clusterPath=clusterPath, visualize=cluterVisualize)
+            elif (epi % 10) == 0 :
+                envV.model = cluster_train(envV.model, np.array(envV.data),  clusterPath=clusterPath, visualize=cluterVisualize)
             isClusterexist = True
         if isClusterexist :
-            agentV.decrease_eps()
-            writer.add_scalar("Reward/blur", envV.reward_sum[0], epi)
-            writer.add_scalar("Reward/dup", envV.reward_sum[1], epi)
-            writer.add_scalar("Reward/net", envV.reward_sum[2], epi)
-            writer.add_scalar("Reward/total", envV.reward_sum[3], epi)
-        if (epi % 50) == 0:
+            writer.add_scalar("Reward/one_Reward", envV.reward_sum, epi)
+            writer.add_scalar("Network/Diff", (envV.ASum - envV.aSum), epi)
+            writer.add_scalar("Network/target_A(t)", envV.ASum, epi)
+            writer.add_scalar("Network/send_a(t)", envV.aSum, epi)
+        if (epi % 50) == 0 or epi == episoode_maxlen-1 :
             agentV.Q_show()
+            qTable = agentV.get_q_table()
+            _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")
         if showLog :
             envV.trans_show()
         print("buffer size: ", envV.buffer.size())
@@ -95,6 +100,5 @@ def _save_q_table(qTable, filePath="models/q_table.npy") :
 
 if __name__ == "__main__":
     # opt = _parge_opt()
-    qTable = _main()
-    _save_q_table(qTable, qTablePath)
-    
+    _main()
+    print("Training Finish!")
