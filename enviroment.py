@@ -216,6 +216,11 @@ class FrameEnv():
     
     def _get_reward(self):
         # get importance
+        # normalizatino range
+        rMin = 0
+        rMax = 1
+        rNewMin = -1
+        rNewMax = 1
         for f in range(self.fps) :
             ww = self.w//2
             sIdx = max(0, f-ww)
@@ -233,8 +238,8 @@ class FrameEnv():
             self.iList.append(importance)
 
         _, s, a, s_prime = self.transList
-        r = (sum(self.iList[self.curFrameIdx+a+1:]) - sum(self.iList[self.curFrameIdx:self.curFrameIdx+a+1]))
-
+        origin_r = (sum(self.iList[self.curFrameIdx+a+1:]) - sum(self.iList[self.curFrameIdx:self.curFrameIdx+a+1]))
+        r = (origin_r - rMin) * (rNewMax - rNewMin) / (rMax - rMin) + rNewMin
         self.transList.append(r)
         self.curFrameIdx += self.fps
         self.reward_sum += r
