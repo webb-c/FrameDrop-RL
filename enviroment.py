@@ -33,9 +33,10 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, masking=True, outVideoPath="./output.mp4"):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, masking=True, beta=2, outVideoPath="./output.mp4"):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
+        self.beta = beta
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
         if masking :
@@ -199,9 +200,9 @@ class FrameEnv():
                 self.FFTList.append(blur)
             cap.release()
             # np.save(filePath, qTable)
-            np.save("models/FFT_List_Jackson_1.npy", self.FFTList)
+            np.save("models/FFT_List_"+self.videoName+".npy", self.FFTList)
         else : 
-            self.FFTList = np.load("models/FFT_List_Jackson_1.npy")
+            self.FFTList = np.load("models/FFT_List_"+self.videoName+".npy")
         return
     
     def _detect(self, exist=True):
@@ -229,7 +230,7 @@ class FrameEnv():
             normalizedImportance = (iMax - iMin)*(importance) + iMin
             self.iList.append(normalizedImportance)
         _, s, a, s_prime = self.transList
-        r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1]))
+        r = (sum(self.iList[a+1:]) - self.beta * sum(self.iList[:a+1]))
         # r = (origin_r - rMin) * (rNewMax - rNewMin) / (rMax - rMin) + rNewMin
         self.transList.append(r)
         self.curFrameIdx += self.fps

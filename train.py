@@ -34,12 +34,6 @@ def str2bool(v) :
     
 def parge_opt(known=False) :
     parser = argparse.ArgumentParser()
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/Jackson-1.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="/Jackson-1_", help="setting video name")
-
-    parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help="using predetected txt file?")
-    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp2/labels", help="detect file path")
-    
     parser.add_argument("-ei", "--epsilonInit", type=int, default=1, help="epsilon init value")
     parser.add_argument("-ed", "--epsilonDecreseRate", type=float, default=0.01, help="epsilon decrese value")
     parser.add_argument("-em", "--epsilonMinimum", type=float, default=0.1, help="epsilon minimum value")
@@ -50,9 +44,16 @@ def parge_opt(known=False) :
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=False, help="using pretrained cluster model?")
     
+    parser.add_argument("-vp", "--videoPath", type=str, default="data/RoadVideo-1.mp4", help="training video path")
+    parser.add_argument("-vn", "--videoName", type=str, default="RoadVideo-1", help="setting video name")
+
+    parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
+    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp3/labels", help="detect file path")
+    
     # require
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
     parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster.pkl", help="cluster model path")
+    parser.add_argument("-b", "--beta", type=int, default=2, help="sensitive for number of objects")
     # *****
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
 
@@ -78,7 +79,7 @@ def _main(opt):
     print_args(vars(opt))
     
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=opt.detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking)   # etc
+    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=opt.detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta)   # etc
     agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking)
     randAction = True
     for epi in range(episoode_maxlen):       
