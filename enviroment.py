@@ -221,17 +221,25 @@ class FrameEnv():
     def _get_reward(self):
         # get importance
         self.iList = []
-        iMax = 1
-        iMin = -2
 
-        maxNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
+        # reward 1 : max object num
+        # iMax = 1
+        # iMin = -1 * self.beta
+        # maxNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
+        # for f in range(self.fps) :
+        #     importance = (self.objNumList[self.curFrameIdx+f] / maxNum) if maxNum != 0 else 0
+        #     normalizedImportance = (iMax - iMin)*(importance) + iMin
+        #     self.iList.append(normalizedImportance)
+        # _, s, a, s_prime = self.transList
+        # r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1]))
+        
+        # reward 2 : avg object num
+        avgNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
         for f in range(self.fps) :
-            importance = (self.objNumList[self.curFrameIdx+f] / maxNum) if maxNum != 0 else 0
-            normalizedImportance = (iMax - iMin)*(importance) + iMin
-            self.iList.append(normalizedImportance)
-        _, s, a, s_prime = self.transList
-        r = (sum(self.iList[a+1:]) - self.beta * sum(self.iList[:a+1]))
-        # r = (origin_r - rMin) * (rNewMax - rNewMin) / (rMax - rMin) + rNewMin
+            importance = self.objNumList[self.curFrameIdx+f] - avgNum
+            self.iList.append(importance)
+         _, s, a, s_prime = self.transList
+        r = (sum(self.iList[a+1:]) - self.beta * sum(self.iList[:a+1])) / self.fps
         self.transList.append(r)
         self.curFrameIdx += self.fps
         self.reward_sum += r
