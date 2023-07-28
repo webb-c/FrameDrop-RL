@@ -40,9 +40,9 @@ class FrameEnv():
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
         if masking :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_5", 200000)
         else : 
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_6", 200000)
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath

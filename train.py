@@ -3,10 +3,10 @@ for offline-training
 
 Example of Usage :
     mask : 
-    $ python train.py -qp models/q_table_mask__1 -cp models/cluster_mask__1.pkl -m True
+    $ python train.py -qp models/q_table_mask -cp models/cluster_mask.pkl -m True
     
     unmask : 
-    $ python train.py -qp models/q_table_2(unmask) -cp models/cluster_2(unmask).pkl -m False
+    $ python train.py -qp models/q_table_unmask -cp models/cluster_unmask.pkl -m False
         
 """
 import numpy as np
@@ -44,8 +44,8 @@ def parge_opt(known=False) :
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=False, help="using pretrained cluster model?")
     
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/RoadVideo-1.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="RoadVideo-1", help="setting video name")
+    parser.add_argument("-vp", "--videoPath", type=str, default="data/RoadVideo-2.mp4", help="training video path")
+    parser.add_argument("-vn", "--videoName", type=str, default="RoadVideo-2", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
     parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp3/labels", help="detect file path")
@@ -73,6 +73,7 @@ def _main(opt):
     
     qTablePath = opt.qTablePath
     clusterPath = opt.clusterPath
+    videoName = opt.videoName
     masking = opt.masking
     isClusterexist = opt.isClusterexist
     
@@ -106,9 +107,9 @@ def _main(opt):
         if len(envV.data) > data_len :
             if not isClusterexist :
                 print("clustering ... ")
-                envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, visualize=cluterVisualize, masking=masking)
-            elif (epi % 10) == 0 :
-                envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, visualize=cluterVisualize, masking=masking)
+                envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, videoName=videoName, visualize=cluterVisualize)
+            elif (epi % 50) == 0 :
+                envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, videoName=videoName, visualize=cluterVisualize)
             isClusterexist = True
         if isClusterexist :
             writer.add_scalar("Reward/one_Reward", envV.reward_sum, epi)
