@@ -53,7 +53,7 @@ def parge_opt(known=False) :
     # require
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
     parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster.pkl", help="cluster model path")
-    parser.add_argument("-b", "--beta", type=int, default=2, help="sensitive for number of objects")
+    parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
     # *****
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
 
@@ -61,11 +61,10 @@ def parge_opt(known=False) :
 
 def _main(opt):
     # setting
-    # V 1000000
     logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     episoode_maxlen = 300
     epi_actions = 500
-    data_len = 500
+
     data_maxlen = 10000
     replayBuffer_len = 1000
     replayBuffer_maxlen = 20000
@@ -88,7 +87,7 @@ def _main(opt):
         done = False
         cluterVisualize = False
         showLog = False
-        if (epi % 50) == 0 or epi == episoode_maxlen-1 :
+        if epi == 0 or (epi % 50) == 0 or epi == episoode_maxlen-1 :
             cluterVisualize = True
             showLog = True
         s = envV.reset(isClusterexist=isClusterexist, showLog=showLog)
@@ -103,14 +102,7 @@ def _main(opt):
                 trans = envV.buffer.get()
                 agentV.Q_update(trans)
             agentV.decrease_eps()
-        # cluster update
-        if len(envV.data) > data_len :
-            if not isClusterexist :
-                print("clustering ... ")
-                envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, videoName=videoName, visualize=cluterVisualize)
-            elif (epi % 50) == 0 :
-                envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, videoName=videoName, visualize=cluterVisualize)
-            isClusterexist = True
+        # logging
         if isClusterexist :
             writer.add_scalar("Reward/one_Reward", envV.reward_sum, epi)
             writer.add_scalar("Network/Diff", (envV.ASum - envV.aSum), epi)
@@ -119,13 +111,19 @@ def _main(opt):
         if (epi % 50) == 0 or epi == episoode_maxlen-1 :
             agentV.Q_show()
             qTable = agentV.get_q_table()
-            _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")
+            if epi == episoode_maxlen-1 :
+                _save_q_table(qTable, qTablePath+".npy")
+            else :
+                _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")
         if showLog :
             envV.trans_show()
+        # after first episode, make cluster model
+        if not isClusterexist :
+            envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, videoName=videoName, visualize=cluterVisualize)
+            isClusterexist = True
         print("buffer size: ", envV.buffer.size())
         envV.omnet.get_omnet_message()
         envV.omnet.send_omnet_message("finish")
-        isDetectionexist = True
         print("sum of A(t) : ", envV.ASum, "| sum of a(t) : ", envV.aSum)
     envV.omnet.close_pipe()
     return agentV.get_q_table()

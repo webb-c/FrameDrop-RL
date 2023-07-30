@@ -29,6 +29,7 @@ def cluster_init(k=10):
     return model
     
 def cluster_train(model, data, clusterPath, videoName, visualize=False):
+    print("start clustering for inputVideo")
     model.fit(data)
     joblib.dump(model, clusterPath)
     if visualize :
@@ -45,8 +46,3 @@ def cluster_pred(originState, model):
     originState = [originState]
     s = model.predict(originState)
     return s
-
-if __name__ == "__main__":
-    # data = []
-    # get_state_distriburtion(data)
-    print("non-eror")

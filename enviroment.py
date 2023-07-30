@@ -9,6 +9,7 @@ import os
 import math
 import numpy as np
 import win32pipe, win32file
+import statistics
 from utils.get_state import cluster_pred, cluster_load, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
 from utils.cal_F1 import get_F1
@@ -40,9 +41,9 @@ class FrameEnv():
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
         if masking :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_5", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
         else : 
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_6", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath
@@ -217,29 +218,31 @@ class FrameEnv():
             with open(filePath, 'r') as file :
                 lines = file.readlines()
                 self.objNumList.append(len(lines))
+        self.isDetectionexist = True
     
     def _get_reward(self):
         # get importance
         self.iList = []
 
         # reward 1 : max object num
-        # iMax = 1
-        # iMin = -1 * self.beta
-        # maxNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
-        # for f in range(self.fps) :
-        #     importance = (self.objNumList[self.curFrameIdx+f] / maxNum) if maxNum != 0 else 0
-        #     normalizedImportance = (iMax - iMin)*(importance) + iMin
-        #     self.iList.append(normalizedImportance)
-        # _, s, a, s_prime = self.transList
-        # r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1]))
-        
-        # reward 2 : avg object num
-        avgNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
+        iMax = 1
+        iMin = -1 * self.beta
+        maxNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
         for f in range(self.fps) :
-            importance = self.objNumList[self.curFrameIdx+f] - avgNum
-            self.iList.append(importance)
-         _, s, a, s_prime = self.transList
-        r = (sum(self.iList[a+1:]) - self.beta * sum(self.iList[:a+1])) / self.fps
+            importance = (self.objNumList[self.curFrameIdx+f] / maxNum) if maxNum != 0 else 0
+            normalizedImportance = (iMax - iMin)*(importance) + iMin
+            self.iList.append(normalizedImportance)
+        _, s, a, s_prime = self.transList
+        r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1])) / self.fps
+        
+        # # reward 2 : avg object num
+        # avgNum = statistics.mean(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
+        # for f in range(self.fps) :
+        #     importance = self.objNumList[self.curFrameIdx+f] - avgNum
+        #     self.iList.append(importance)
+        # _, s, a, s_prime = self.transList
+        # r = (sum(self.iList[a+1:]) - self.beta * sum(self.iList[:a+1])) / self.fps
+        
         self.transList.append(r)
         self.curFrameIdx += self.fps
         self.reward_sum += r
