@@ -10,7 +10,7 @@ import math
 import numpy as np
 import win32pipe, win32file
 import statistics
-from utils.get_state import cluster_pred, cluster_load, cluster_init
+from utils.get_state import cluster_pred, cluster_load, cluster_init, cluster_train
 from utils.cal_quality import get_FFT, get_MSE
 from utils.cal_F1 import get_F1
 from utils.yolov5.detect import inference
@@ -41,9 +41,9 @@ class FrameEnv():
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
         if masking :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_3", 200000)
         else : 
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_4", 200000)
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath
@@ -52,12 +52,29 @@ class FrameEnv():
         self.clusterPath = clusterPath
         self.capIdx = 0
         # hyper-parameter
+        if not self.isRun :
+            self._detect(self.isDetectionexist)
         self.w = w
         self.model = cluster_init(k=stateNum)
         if self.isClusterexist :  
+            print("load cluster model in init...")
             self.model = cluster_load(self.clusterPath)
-        if not self.isRun :
-            self._detect(self.isDetectionexist)
+        else :
+            print("clustering in init...")
+            capTemp = cv2.VideoCapture(self.videoPath)
+            _, f_prev = capTemp.read()
+            idx = 0
+            self.data.append([0, self.FFTList[idx]])
+            while True :
+                idx += 1
+                ret, f_cur = capTemp.read()
+                if not ret :
+                    capTemp.release()
+                    break
+                self.data.append([get_MSE(f_prev, f_cur), self.FFTList[idx]])
+                f_prev = f_cur            
+            self.model = cluster_train(self.model, np.array(self.data), clusterPath=self.clusterPath, videoName=self.videoName, visualize=True)
+            self.isClusterexist = True
         # record
         self.ASum = 0
         self.aSum = 0
@@ -70,13 +87,12 @@ class FrameEnv():
             self.outVideoPath = outVideoPath
             self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
             
-    def reset(self, isClusterexist=False, showLog=False) :
+    def reset(self, showLog=False) :
         self.reward_sum = 0 # r_dup, r_blur, r_net, r_total
         self.skipTime = 0
         self.ASum = 0
         self.aSum = 0
         self.iList = []
-        self.isClusterexist = isClusterexist
         self.showLog = showLog
         self.cap = cv2.VideoCapture(self.videoPath)
         self.curFrameIdx = 0
@@ -93,9 +109,8 @@ class FrameEnv():
         else :
             self.originState = [0, self.FFTList[self.curFrameIdx]]
         self.state = 0
-        if self.isClusterexist :
-            self.transList = []
-            self.state = cluster_pred(self.originState, self.model)
+        self.transList = []
+        self.state = cluster_pred(self.originState, self.model)
         if self.showLog :   
             self.logList = []
         return self.state
@@ -162,10 +177,9 @@ class FrameEnv():
         self.sendA = self.fps - action
         self.aSum += self.sendA
         self.ASum += self.targetA
-        if self.isClusterexist :
-            self.transList.append(self.fps-self.targetA)
-            self.transList.append(self.state)
-            self.transList.append(action)
+        self.transList.append(self.fps-self.targetA)
+        self.transList.append(self.state)
+        self.transList.append(action)
         self.frameList = [self.frame]
         self.processList = [self.frame]
         self.prevA = self.targetA
@@ -178,15 +192,15 @@ class FrameEnv():
             self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame)]
         else :
             self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx+self.fps]]
-        if self.isClusterexist :
-            self.state = cluster_pred(self.originState, self.model)
-            self.transList.append(self.state)
-            # reward
-            if not self.isRun :
-                self._get_reward()
-            self.buffer.put(self.transList)
-            # print(self.transList)
-            self.transList = []
+        
+        self.state = cluster_pred(self.originState, self.model)
+        self.transList.append(self.state)
+        # reward
+        if not self.isRun :
+            self._get_reward()
+        self.buffer.put(self.transList)
+        # print(self.transList)
+        self.transList = []
         return False
     
     def _get_FFT_List(self, exist=True):

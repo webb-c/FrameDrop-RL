@@ -42,7 +42,7 @@ def parge_opt(known=False) :
     parser.add_argument("-w", "--window", type=int, default=5, help="importance calculate object detect range")
     parser.add_argument("-s", "--stateNum", type=int, default=15, help="clustering state Number")
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
-    parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=False, help="using pretrained cluster model?")
+    parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
     
     parser.add_argument("-vp", "--videoPath", type=str, default="data/RoadVideo-2.mp4", help="training video path")
     parser.add_argument("-vn", "--videoName", type=str, default="RoadVideo-2", help="setting video name")
@@ -52,7 +52,7 @@ def parge_opt(known=False) :
     
     # require
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
-    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster.pkl", help="cluster model path")
+    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_RoadVideo-2.pkl", help="cluster model path")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
     # *****
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
@@ -85,12 +85,12 @@ def _main(opt):
     for epi in range(episoode_maxlen):       
         print("episode :", epi)
         done = False
-        cluterVisualize = False
+        cluterVisualize = True
         showLog = False
         if epi == 0 or (epi % 50) == 0 or epi == episoode_maxlen-1 :
             cluterVisualize = True
             showLog = True
-        s = envV.reset(isClusterexist=isClusterexist, showLog=showLog)
+        s = envV.reset(showLog=showLog)
         while not done:
             requireSkip = opt.fps - envV.targetA
             a = agentV.get_action(s, requireSkip, randAction)
@@ -118,8 +118,8 @@ def _main(opt):
         if showLog :
             envV.trans_show()
         # after first episode, make cluster model
-        if not isClusterexist :
-            envV.model = cluster_train(envV.model, np.array(envV.data), clusterPath=clusterPath, videoName=videoName, visualize=cluterVisualize)
+        if not isClusterexist and epi == 1:
+            
             isClusterexist = True
         print("buffer size: ", envV.buffer.size())
         envV.omnet.get_omnet_message()
