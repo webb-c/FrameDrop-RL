@@ -38,6 +38,7 @@ def _main(case) :
     print("Ready ...")
     s = envV.reset()
     frame = 0
+    aList = []
     while not done:
         print(frame)        
         if masking :
@@ -47,11 +48,13 @@ def _main(case) :
         a = agentV.get_action(s, requireskip, False)
         s, done = envV.step(a)
         frame += 30
+        aList.append(a)
     envV.omnet.get_omnet_message()
     envV.omnet.send_omnet_message("finish")
     envV.omnet.close_pipe()
     print("a(t) :", envV.aSum, "A(t) :", envV.ASum)
     print("Test End!")
+    print(aList)
 
 if __name__ == "__main__":
     # opt = _parge_opt()

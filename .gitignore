@@ -10,6 +10,7 @@ models/*
 !models/q_table_mask_YOLO_jetson.npy
 !models/q_table_unmask_YOLO_jetson.npy
 !models/yolov5s6.pt
+!models/test.pkl
 
 results/*
 !results/cluster_jetson-train.png
