@@ -30,7 +30,7 @@ def _main(qTable) :
     replayBuffer_maxlen = 20000
     gamma = 0.9
     envV = FrameEnv(videoName=videoName, videoPath=videoPath, clusterPath=clusterPath, resultPath="utils/yolov5/runs/detect/exp3/labels", data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=30, w=40, stateNum=15, isDetectionexist=True, isClusterexist=True, isRun=True, masking=True, beta=1.2)   # etc
-    agentV = Agent(eps_init=1.0, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.01, gamma=0.9, stateNum=15, isRun=True, masking=True)
+    agentV = Agent(qTable=qTable, eps_init=1.0, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.01, gamma=0.9, stateNum=15, isRun=True, masking=True, isContinue=False)
     done = False
     print("Ready ...")
     s = envV.reset(isClusterexist=True)

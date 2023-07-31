@@ -10,7 +10,7 @@ random.seed(42)
 INF = float("inf")
 
 class Agent():
-    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, isRun=False, masking=True):
+    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, isRun=False, masking=True, isContinue=False):
         self.eps = eps_init
         self.eps_decrese = eps_decrese
         self.eps_min = eps_min
@@ -19,7 +19,7 @@ class Agent():
         self.stateNum = stateNum
         self.fps = fps
         self.masking = masking
-        if len(qTable) > 0 : 
+        if len(qTable) > 0 and (isContinue or isRun) : 
             self.qTable = qTable
         else :
             self.qTable = np.zeros((stateNum, fps+1))  # s, a
