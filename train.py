@@ -9,6 +9,10 @@ Example of Usage :
     $ python train.py -qp models/q_table_unmask -cp models/cluster_unmask.pkl -m False
         
 """
+
+# >python train.py -priorC False -priorD False -drp utils/yolov5/runs/detect/exp4/labels -qp models/q_table_unmask_YOLO_jetson -m False
+# python train.py -drp utils/yolov5/runs/detect/exp4/labels -qp models/q_table_unmask_YOLO_jetson -m False   
+
 import numpy as np
 from agent import Agent
 from enviroment import FrameEnv
@@ -44,15 +48,15 @@ def parge_opt(known=False) :
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
     
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/RoadVideo-2.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="RoadVideo-2", help="setting video name")
+    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train.mp4", help="training video path")
+    parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
-    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp3/labels", help="detect file path")
+    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp4/labels", help="detect file path")
     
     # require
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
-    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_RoadVideo-2.pkl", help="cluster model path")
+    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson_train.pkl", help="cluster model path")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
     # *****
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
