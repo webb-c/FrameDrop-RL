@@ -8,14 +8,14 @@ Example of Usage :
     unmask : 
     $ python train.py -qp models/q_table_unmask -cp models/cluster_unmask.pkl -m False
         
-"""
-
 ### for training Jetson continue... 
 # mask :
 # python train.py -qp models/q_table_mask_YOLO_jetson.npy  -con True -lr {learningrate} -ei {e init} -ed {e decrese} -em {em}
 #
 # unmask :
 # python train.py -qp models/q_table_unmask_YOLO_jetson.npy  -con True -lr {learningrate}
+
+"""
 
 import numpy as np
 from agent import Agent
