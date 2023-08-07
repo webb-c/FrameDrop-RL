@@ -2,9 +2,13 @@ __pycache__
 utils/__pycache__
 utils/yolov5/runs/*
 
-data/backup
+data/*
+!data/RoadVideo-test.mp4
+!data/jetson-test.mp4
 
 models/BACKUP
 models/TrialAndError
 
 results/*
+!results/cluster_jetson-train.png
+!results/cluster_RoadVideo-train.png

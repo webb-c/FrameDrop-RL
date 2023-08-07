@@ -52,12 +52,12 @@ def parge_opt(known=False) :
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
     
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train_Trim.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="jetson-train_Trim", help="setting video name")
+    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train.mp4", help="training video path")
+    parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
     parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp5/labels", help="detect file path")
-    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train_Trim.pkl", help="cluster model path")
+    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
     
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
