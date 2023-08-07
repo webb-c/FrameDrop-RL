@@ -6,11 +6,11 @@ A reinforcement learning model that drops unnecessary frames depending on the ne
 
 ### train
 ```bash
-python train.py
+python train.py -qp models/q_table_mask -cp models/cluster_mask.pkl -m True
 ```
 ### run
 ```bash
-python run.py
+python run.py -qp models/q_table_mask -cp models/cluster_mask.pkl -m True
 ```
 
 ## Dependency
