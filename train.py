@@ -52,18 +52,19 @@ def parge_opt(known=False) :
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
     
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
+    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train_Trim.mp4", help="training video path")
+    parser.add_argument("-vn", "--videoName", type=str, default="jetson-train_Trim", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
-    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp4/labels", help="detect file path")
-    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
+    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp5/labels", help="detect file path")
+    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train_Trim.pkl", help="cluster model path")
     
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
-    parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
+    parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-con", "--isContinue", type=str2bool, default=False, help="for Jetson Training")
+    parser.add_argument("-pipe", "--pipeNum", type=int, default=1, help="pipe")
 
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
@@ -88,7 +89,7 @@ def _main(opt):
     print_args(vars(opt))
     
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=opt.detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta)   # etc
+    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=opt.detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum)   # etc
     agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking, isContinue=isContinue)
     randAction = True
     for epi in range(episoode_maxlen):       

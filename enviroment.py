@@ -34,26 +34,24 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=0, masking=True, beta=1, outVideoPath="./output.mp4"):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=1, masking=True, beta=1, outVideoPath="./output.mp4", pipeName="\\\\.\\pipe\\frame_drop_rl"):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.beta = beta
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
-        if isRun :
-            if runmode == 1 :
-                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
-            elif runmode == 2 :
-                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
-            elif runmode == 3 :
-                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_3", 200000)
-            elif runmode == 4 :
-                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_4", 200000)
-        else :
-            if masking :
-                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
-            else : 
-                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
+        if runmode == 1 :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+        elif runmode == 2 :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
+        elif runmode == 3 :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_3", 200000)
+        elif runmode == 4 :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_4", 200000)
+        elif runmode == 5 :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_5", 200000)
+        elif runmode == 6 :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_6", 200000)
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath
