@@ -2,16 +2,9 @@ __pycache__
 utils/__pycache__
 utils/yolov5/runs/*
 
-data/*
-!data/jetson-train.mp4
+data/backup
 
-models/*
-!models/cluster_jetson-train.pkl
-!models/FFT_List_jetson-train.npy
-!models/q_table_mask_YOLO_jetson.npy
-!models/q_table_unmask_YOLO_jetson.npy
-!models/yolov5s6.pt
-!models/test.pkl
+models/BACKUP
+models/TrialAndError
 
 results/*
-!results/cluster_jetson-train.png

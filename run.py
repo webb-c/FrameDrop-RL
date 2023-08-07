@@ -10,7 +10,7 @@ Example of Usage :
         
 
 pre-trained models option :
-    # [case1] video : data/RoadVideo.mp4, OMNeT++ env : 6-node topology, beta=1.35
+    # [case1] video : data/RoadVideo-train.mp4, OMNeT++ env : 6-node topology, beta=1.35
     QTABLE
     - masked : models/q_table_mask__general.npy
     - unmasked : models/q_table_unmask__general.npy
@@ -19,15 +19,15 @@ pre-trained models option :
     
     # [case2] video : data/jetson-train.mp4, OMNeT++ env : 2-node topology, beta=0.5
     QTABLE
-    - masked : models/q_table_mask_YOLO_jetson_origin.npy
-    - unmasked : models/q_table_unmask_YOLO_jetson_origin.npy 
+    - masked : models/q_table_mask_YOLO_jetson.npy
+    - unmasked : models/q_table_unmask_YOLO_jetson.npy 
     Cluster
     models/cluster_jetson=train.pkl
     
     # [case3] video : data/jetson-train.mp4, OMNeT++ env : 7-node topology, beta=0.5
     QTABLE
-    - Agent1(masked) : models/q_table_mask_Agent1_origin.npy
-    - Agent2(unmasked) : models/q_table_mask_Agent2_origin.npy
+    - Agent1(masked) : models/q_table_mask_Agent1.npy
+    - Agent2(unmasked) : models/q_table_mask_Agent2.npy
     Cluster
     models/cluster_jetson=train.pkl
 
@@ -37,6 +37,10 @@ import numpy as np
 from agent import Agent
 from enviroment import FrameEnv
 import argparse
+
+def _get_q_table(filePath):
+    qTable = np.load(filePath)
+    return qTable
 
 def str2bool(v) :
     if isinstance(v, bool) :
@@ -70,10 +74,6 @@ def parge_opt(known=False) :
     parser.add_argument("-op", "--outVideoPath", type=str, default="results/skiping.mp4", help="output video Path")
     
     return parser.parse_known_args()[0] if known else parser.parse_args()
-
-def _get_q_table(filePath):
-    qTable = np.load(filePath)
-    return qTable
 
 def _main(opt) :
     qTable = _get_q_table(opt.qTablePath)
