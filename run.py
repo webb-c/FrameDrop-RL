@@ -73,6 +73,8 @@ def parge_opt(known=False) :
     parser.add_argument("-pipe", "--pipeNum", type=int, default=1, help="using pipe number")
     parser.add_argument("-op", "--outVideoPath", type=str, default="results/skiping.mp4", help="output video Path")
     
+    # **** NEW ****
+    # parser.add_argument("-optProb", "--optProb", type=float, default=0.7, help="optimal select probabiltiy")
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
 def _main(opt) :
