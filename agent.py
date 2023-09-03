@@ -26,32 +26,12 @@ class Agent():
         self.actionSpace = list(range(fps+1))  # 0 to fps
         self.isRun = isRun
         self.isFirst = True
-        ##### NEW! ######
-        # self.optProb = optProb
-    
-    def normal_pdf(x, mu, sigma_sq):
-        return (1 / np.sqrt(2 * np.pi * sigma_sq)) * np.exp(-(x - mu)**2 / (2 * sigma_sq))
-
-    # TODO
-    def conditional_action(self, requireskip, actionList=[]) :
-        optimal_action = requireskip
-        # action 확률
-        
-        # Q value 고려
-        if len(actionList) != 0 :
-            
-        
-        ##### 선택 #####
-        p = random.random()
-        action = optimal_action
-        return action
 
     # requireSkip = fps - A(t)
     def get_action(self, s, requireskip, randAction=True):
         if self.isFirst and requireskip == self.fps :
             requireskip -= 1
             self.isFirst = False
-        # Inference #TODO
         if self.isRun :
             temp = copy.deepcopy(self.qTable[s, :])
             temp_vec = temp.flatten()
@@ -60,32 +40,26 @@ class Agent():
                 if action >= requireskip :
                     break
                 temp_vec[action] = (-1)*INF
-        # Training 
         else :
             if randAction :
                 action = random.choice(self.actionSpace[:])
+            # masked
             else : 
                 p = random.random()
-                # exploration
-                if p < self.eps :
+                if p < self.eps :  # exploration
                     if self.masking : 
-                        # masked ---- soft-constraint ---- 
-                        action = self.conditional_action(requireskip)  # 100% probabiltiy 
-                        
-                    else :  
+                        action = random.choice(self.actionSpace[requireskip:])
+                    else : 
                         action = random.choice(self.actionSpace[:])
-                # argmax
-                else:
+                else:  
                     temp = copy.deepcopy(self.qTable[s, :])
                     temp_vec = temp.flatten()
                     if self.masking : 
-                        # masked ---- soft-constraint ----
-                        # while True :
-                        #     action = np.argmax(temp_vec)
-                        #     if action >= requireskip :
-                        #         break
-                        #     temp_vec[action] = (-1)*INF
-                        action = self.conditional_action(requireskip, actionList=temp_vec)
+                        while True :
+                            action = np.argmax(temp_vec)
+                            if action >= requireskip :
+                                break
+                            temp_vec[action] = (-1)*INF
                     else :
                         action = np.argmax(temp_vec)
         return action
