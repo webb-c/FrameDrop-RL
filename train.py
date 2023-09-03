@@ -53,11 +53,11 @@ def parge_opt(known=False) :
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
     
     parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
+    # parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
-    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp5/labels", help="detect file path")
-    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
+    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp/labels", help="detect file path")
+    # parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
     
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
@@ -78,10 +78,20 @@ def _main(opt):
     replayBuffer_len = 1000
     replayBuffer_maxlen = 20000
     gamma = 0.9
+    videoName = opt.videoPath.split("/")[-1].split(".")[0]
+    clusterPath = "models/cluster_"+videoName+".pkl"
     
+    # detect result 편의를 위해...
+    if videoName == "jetson-train" :
+        detectResultPath = "utils/yolov5/runs/detect/exp/labels"
+    elif videoName == "RoadVideo-train" :
+        detectResultPath = "utils/yolov5/runs/detect/exp2/labels"
+    elif videoName == "jetson-train-new" :#TODO 
+        detectResultPath = "utils/yolov5/runs/detect/exp3/labels"
+    else :
+        detectResultPath=opt.detectResultPath
+        
     qTablePath = opt.qTablePath
-    clusterPath = opt.clusterPath
-    videoName = opt.videoName
     masking = opt.masking
     isClusterexist = opt.isClusterexist
     isContinue = opt.isContinue
@@ -89,7 +99,7 @@ def _main(opt):
     print_args(vars(opt))
     
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=opt.detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum)   # etc
+    envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum)   # etc
     agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking, isContinue=isContinue)
     randAction = True
     for epi in range(episoode_maxlen):       
