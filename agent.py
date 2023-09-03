@@ -26,7 +26,17 @@ class Agent():
         self.actionSpace = list(range(fps+1))  # 0 to fps
         self.isRun = isRun
         self.isFirst = True
-
+    
+    # gaussian distribution for soft=constraint
+    def gaussian(self, x, mean, std):
+        return (1.0 / np.sqrt(2 * np.pi * std**2)) * np.exp(-((x - mean)**2) / (2 * std**2))
+    
+    def sample_gaussian(self, mean, std=1.2, lower_bound=0, upper_bound=30):
+        x = np.arange(lower_bound, upper_bound+1)
+        y = self.gaussian(x, mean, std)
+        sampled_value = np.random.choice(x, p=y/np.sum(y))
+        return sampled_value
+    
     # requireSkip = fps - A(t)
     def get_action(self, s, requireskip, randAction=True):
         if self.isFirst and requireskip == self.fps :
