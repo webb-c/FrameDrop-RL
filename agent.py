@@ -26,6 +26,8 @@ class Agent():
         self.actionSpace = list(range(fps+1))  # 0 to fps
         self.isRun = isRun
         self.isFirst = True
+        # ********** NEW **********
+        self.isSoft = isSoft
     
     # gaussian distribution for soft=constraint
     def gaussian(self, x, mean, std):
@@ -56,20 +58,28 @@ class Agent():
             # masked
             else : 
                 p = random.random()
-                if p < self.eps :  # exploration
-                    if self.masking : 
+                # exploration
+                if p < self.eps :  
+                    # ***** hard-soft *****
+                    if self.masking and not self.isSoft: 
                         action = random.choice(self.actionSpace[requireskip:])
                     else : 
                         action = random.choice(self.actionSpace[:])
+                # greedy
                 else:  
                     temp = copy.deepcopy(self.qTable[s, :])
                     temp_vec = temp.flatten()
                     if self.masking : 
-                        while True :
-                            action = np.argmax(temp_vec)
-                            if action >= requireskip :
-                                break
-                            temp_vec[action] = (-1)*INF
+                        if self.isSoft :
+                            sampleAction = self.sample_gaussian(requireskip, std=1.2)
+                            # TODO with argmax
+                            action = sampleAction
+                        else :
+                            while True :
+                                action = np.argmax(temp_vec)
+                                if action >= requireskip :
+                                    break
+                                temp_vec[action] = (-1)*INF
                     else :
                         action = np.argmax(temp_vec)
         return action
