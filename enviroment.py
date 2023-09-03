@@ -34,7 +34,7 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=1, masking=True, beta=1, outVideoPath="./output.mp4", pipeName="\\\\.\\pipe\\frame_drop_rl"):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=1, masking=True, beta=1, outVideoPath="./output.mp4", isSoft=False):
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.beta = beta

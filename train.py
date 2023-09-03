@@ -63,6 +63,7 @@ def parge_opt(known=False) :
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
     parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
+    parser.add_argument("-soft", "--isSoft", type=str2bool, default=False, help="using soft-constraint?")
     parser.add_argument("-con", "--isContinue", type=str2bool, default=False, help="for Jetson Training")
     parser.add_argument("-pipe", "--pipeNum", type=int, default=1, help="pipe")
 
@@ -99,8 +100,8 @@ def _main(opt):
     print_args(vars(opt))
     
     writer = SummaryWriter(logdir)
-    envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum)   # etc
-    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking, isContinue=isContinue)
+    envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft)   # etc
+    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
     randAction = True
     for epi in range(episoode_maxlen):       
         print("episode :", epi)
