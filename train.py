@@ -59,6 +59,9 @@ def parge_opt(known=False) :
     parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp/labels", help="detect file path")
     # parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
     
+    # *** soft ***
+    parser.add_argument("-sw", "--softWeight", type=float, default=0.9, help="weight for combine soft and Q")
+    
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
     parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
@@ -101,7 +104,7 @@ def _main(opt):
     
     writer = SummaryWriter(logdir)
     envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft)   # etc
-    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
+    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, softWeight=opt.softWeight, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
     randAction = True
     for epi in range(episoode_maxlen):       
         print("episode :", epi)
