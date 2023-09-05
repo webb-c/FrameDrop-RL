@@ -45,6 +45,10 @@ class Agent():
         y = (1.0 / np.sqrt(2 * np.pi * std ** 2)) * np.exp(-((x - mean) ** 2) / (2 * std ** 2))
         return y / np.sum(y)
     
+    def softmax(self, x):
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / exp_x.sum()
+    
     # requireSkip = fps - A(t)
     def get_action(self, s, requireskip, randAction=True):
         if self.isFirst and requireskip == self.fps :
@@ -79,14 +83,25 @@ class Agent():
                     temp = copy.deepcopy(self.qTable[s, :])
                     temp_vec = temp.flatten()
                     if self.masking : 
+                        # TODO soft-constraint with argmax
                         if self.isSoft :
                             gaussian_prob = self.discrete_gaussian_prob(mean=requireskip, std=1.2)
+                            """
+                            ##### not-softmax #####
                             min_val = np.min(temp_vec)
                             max_val = np.max(temp_vec)
                             Q_prob = (temp_vec - min_val) / (max_val - min_val)
-                            # TODO with argmax
+                            """
+                            ##### using softmax #####
+                            Q_prob = self.softmax(np.array(temp_vec))
+                            ##### using + #####
                             combined_prob = (1-self.softWeight)*Q_prob + self.softWeight*gaussian_prob
                             action = np.random.choice(np.arange(0, 31), p=combined_prob / np.sum(combined_prob))
+                            """
+                            ##### using joint #####
+                            combined_prob = [g * q for g, q in zip(gaussian_prob, Q_prob)]
+                            action = np.random.choice(np.arange(0, 31), p=np.array(combined_prob)/np.sum(combined_prob))
+                            """
                         else :
                             while True :
                                 action = np.argmax(temp_vec)
