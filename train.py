@@ -52,7 +52,7 @@ def parge_opt(known=False) :
     parser.add_argument("-lr", "--lr", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
     
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-train.mp4", help="training video path")
+    parser.add_argument("-vp", "--videoPath", type=str, default="data/RoadVideo-train.mp4", help="training video path") # using Jetson-video : "data/jetson-train.mp4"
     # parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
@@ -64,7 +64,7 @@ def parge_opt(known=False) :
     
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
-    parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
+    parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-soft", "--isSoft", type=str2bool, default=False, help="using soft-constraint?")
     parser.add_argument("-con", "--isContinue", type=str2bool, default=False, help="for Jetson Training")
@@ -137,8 +137,8 @@ def _main(opt):
             qTable = agentV.get_q_table()
             if epi == episoode_maxlen-1 :
                 _save_q_table(qTable, qTablePath+".npy")
-            else :
-                _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")
+            # else :
+            #    _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")
         if showLog :
             envV.trans_show()
         # after first episode, make cluster model

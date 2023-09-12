@@ -85,7 +85,7 @@ class Agent():
                     if self.masking : 
                         # TODO soft-constraint with argmax
                         if self.isSoft :
-                            gaussian_prob = self.discrete_gaussian_prob(mean=requireskip, std=1.2)
+                            gaussian_prob = self.discrete_gaussian_prob(mean=requireskip, std=self.softWeight)
                             """
                             ##### not-softmax #####
                             min_val = np.min(temp_vec)
@@ -94,14 +94,23 @@ class Agent():
                             """
                             ##### using softmax #####
                             Q_prob = self.softmax(np.array(temp_vec))
+                            """
                             ##### using + #####
                             combined_prob = (1-self.softWeight)*Q_prob + self.softWeight*gaussian_prob
                             action = np.random.choice(np.arange(0, 31), p=combined_prob / np.sum(combined_prob))
                             """
                             ##### using joint #####
                             combined_prob = [g * q for g, q in zip(gaussian_prob, Q_prob)]
-                            action = np.random.choice(np.arange(0, 31), p=np.array(combined_prob)/np.sum(combined_prob))
-                            """
+                            # action = np.random.choice(np.arange(0, 31), p=np.array(combined_prob)/np.sum(combined_prob))
+                            ###### using hardconstraint #####
+                            filtered_indices = [i for i, p in enumerate(combined_prob) if p > self.softWeight]
+                            if filtered_indices:
+                                Q_values = [temp_vec[i] for i in filtered_indices]
+                                max_Q_value = max(Q_values)
+                                action = filtered_indices[Q_values.index(max_Q_value)]
+                            else :
+                                action = np.random.choice(np.arange(0, 31), p=np.array(combined_prob)/np.sum(combined_prob))
+                            
                         else :
                             while True :
                                 action = np.argmax(temp_vec)
@@ -113,9 +122,23 @@ class Agent():
         return action
 
     def Q_update(self, trans):
+        #TODO
         requireskip, s, a, s_prime, r = trans
         self.qTable[s, a] = self.qTable[s, a] + self.lr * \
             (r + np.max(self.qTable[s_prime, requireskip:]) - self.qTable[s, a])
+        """
+        filtered_indices, s, a, s_prime, r = trans
+        temp = copy.deepcopy(self.qTable[s_prime, :])
+        temp_vec = temp.flatten()
+        if filtered_indices:
+            Q_values = [temp_vec[i] for i in filtered_indices]
+            optimal = max(Q_values)
+        else :
+            optimal =  np.max(self.qTable[s_prime, :])
+
+        self.qTable[s, a] = self.qTable[s, a] + self.lr * \
+            (r + optimal - self.qTable[s, a])
+        """
         return
 
     def Q_show(self):
