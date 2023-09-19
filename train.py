@@ -75,7 +75,8 @@ def parge_opt(known=False) :
 def _main(opt):
     # setting
     logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    episoode_maxlen = 300
+    # episoode_maxlen = 300, 600, 2000
+    episoode_maxlen = 2000
     epi_actions = 500
 
     data_maxlen = 10000

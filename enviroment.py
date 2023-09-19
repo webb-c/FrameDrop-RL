@@ -96,6 +96,8 @@ class FrameEnv():
             self.out = cv2.VideoWriter(outVideoPath, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
             
     def reset(self, showLog=False) :
+        if self.ASum != 0 :
+            self.cap.release()
         self.reward_sum = 0 # r_dup, r_blur, r_net, r_total
         self.skipTime = 0
         self.ASum = 0

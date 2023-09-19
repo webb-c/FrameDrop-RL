@@ -125,8 +125,10 @@ class Agent():
         #TODO
         requireskip, s, a, s_prime, r = trans
         self.qTable[s, a] = self.qTable[s, a] + self.lr * \
-            (r + np.max(self.qTable[s_prime, requireskip:]) - self.qTable[s, a])
+            (r + np.max(self.qTable[s_prime, :]) - self.qTable[s, a])
         """
+        self.qTable[s, a] = self.qTable[s, a] + self.lr * \
+            (r + np.max(self.qTable[s_prime, requireskip:]) - self.qTable[s, a])
         filtered_indices, s, a, s_prime, r = trans
         temp = copy.deepcopy(self.qTable[s_prime, :])
         temp_vec = temp.flatten()
