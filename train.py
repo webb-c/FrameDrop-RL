@@ -61,7 +61,9 @@ def parge_opt(known=False) :
     
     # *** soft ***
     parser.add_argument("-sw", "--softWeight", type=float, default=0.9, help="weight for combine soft and Q")
-    
+    parser.add_argument("-t", "--threshold", type=float, default=0.05, help="init threshold for select feasible set")
+    parser.add_argument("-std", "--std", type=float, default=5, help="std for gaussian distribution")
+    parser.add_argument("-pt", "--pType", type=int, default=1, help="1 is combined 2 is Gaussian")
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
@@ -75,8 +77,8 @@ def parge_opt(known=False) :
 def _main(opt):
     # setting
     logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    # episoode_maxlen = 300, 600, 2000
-    episoode_maxlen = 2000
+    # episode_maxlen = 300, 600, 2000
+    episode_maxlen = 600
     epi_actions = 500
 
     data_maxlen = 10000
@@ -105,14 +107,14 @@ def _main(opt):
     
     writer = SummaryWriter(logdir)
     envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft)   # etc
-    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, softWeight=opt.softWeight, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
+    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, threshold=opt.threshold, std=opt.std, pType=opt.pType, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
     randAction = True
-    for epi in range(episoode_maxlen):       
+    for epi in range(episode_maxlen):       
         print("episode :", epi)
         done = False
         cluterVisualize = True
         showLog = False
-        if epi == 0 or (epi % 50) == 0 or epi == episoode_maxlen-1 :
+        if epi == 0 or (epi % 50) == 0 or epi == episode_maxlen-1 :
             cluterVisualize = True
             showLog = True
         s = envV.reset(showLog=showLog)
@@ -133,10 +135,10 @@ def _main(opt):
             writer.add_scalar("Network/Diff", (envV.ASum - envV.aSum), epi)
             writer.add_scalar("Network/target_A(t)", envV.ASum, epi)
             writer.add_scalar("Network/send_a(t)", envV.aSum, epi)
-        if (epi % 50) == 0 or epi == episoode_maxlen-1 :
+        if (epi % 50) == 0 or epi == episode_maxlen-1 :
             agentV.Q_show()
             qTable = agentV.get_q_table()
-            if epi == episoode_maxlen-1 :
+            if epi == episode_maxlen-1 :
                 _save_q_table(qTable, qTablePath+".npy")
             # else :
             #    _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")

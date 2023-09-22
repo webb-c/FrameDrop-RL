@@ -10,7 +10,7 @@ random.seed(42)
 INF = float("inf")
 
 class Agent():
-    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, softWeight=0.9, isRun=False, masking=True, isContinue=False, isSoft=False):
+    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, threshold=0.05, std=5, pType=1, isRun=False, masking=True, isContinue=False, isSoft=False):
         self.eps = eps_init
         self.eps_decrese = eps_decrese
         self.eps_min = eps_min
@@ -28,19 +28,21 @@ class Agent():
         self.isFirst = True
         # ********** NEW **********
         self.isSoft = isSoft
-        self.softWeight = softWeight
+        self.threshold = threshold
+        self.std = std
+        self.pType = pType
     
     # gaussian distribution for soft=constraint
     def gaussian(self, x, mean, std):
         return (1.0 / np.sqrt(2 * np.pi * std**2)) * np.exp(-((x - mean)**2) / (2 * std**2))
     
-    def sample_gaussian(self, mean, std=1.2, lower_bound=0, upper_bound=30):
+    def sample_gaussian(self, mean, std, lower_bound=0, upper_bound=30):
         x = np.arange(lower_bound, upper_bound+1)
         y = self.gaussian(x, mean, std)
         sampled_value = np.random.choice(x, p=y/np.sum(y))
         return sampled_value
     
-    def discrete_gaussian_prob(self, mean, std=1.2, lower_bound=0, upper_bound=30):
+    def discrete_gaussian_prob(self, mean, std, lower_bound=0, upper_bound=30):
         x = np.arange(lower_bound, upper_bound + 1)
         y = (1.0 / np.sqrt(2 * np.pi * std ** 2)) * np.exp(-((x - mean) ** 2) / (2 * std ** 2))
         return y / np.sum(y)
@@ -73,7 +75,7 @@ class Agent():
                     # ***** hard-soft *****
                     if self.masking : 
                         if self.isSoft:
-                            action = self.sample_gaussian(mean=requireskip, std=5)  #TODO std parameter?
+                            action = self.sample_gaussian(mean=requireskip, std=self.std)  #TODO std parameter?
                         else :
                             action = random.choice(self.actionSpace[requireskip:])
                     else : 
@@ -85,32 +87,32 @@ class Agent():
                     if self.masking : 
                         # TODO soft-constraint with argmax
                         if self.isSoft :
-                            gaussian_prob = self.discrete_gaussian_prob(mean=requireskip, std=self.softWeight)
+                            gaussian_prob = self.discrete_gaussian_prob(mean=requireskip, std=self.std)
                             """
                             ##### not-softmax #####
                             min_val = np.min(temp_vec)
                             max_val = np.max(temp_vec)
                             Q_prob = (temp_vec - min_val) / (max_val - min_val)
-                            """
-                            ##### using softmax #####
-                            Q_prob = self.softmax(np.array(temp_vec))
-                            """
-                            ##### using + #####
-                            combined_prob = (1-self.softWeight)*Q_prob + self.softWeight*gaussian_prob
+                            ##### using + probability #####
+                            combined_prob = (1-self.threshold)*Q_prob + self.threshold*gaussian_prob
                             action = np.random.choice(np.arange(0, 31), p=combined_prob / np.sum(combined_prob))
                             """
-                            ##### using joint #####
-                            combined_prob = [g * q for g, q in zip(gaussian_prob, Q_prob)]
-                            # action = np.random.choice(np.arange(0, 31), p=np.array(combined_prob)/np.sum(combined_prob))
-                            ###### using hardconstraint #####
-                            filtered_indices = [i for i, p in enumerate(combined_prob) if p > self.softWeight]
+                            ##### probabiltiy Type #####
+                            if self.pType == 1 :
+                                ##### using joint #####
+                                Q_prob = self.softmax(np.array(temp_vec))
+                                prob = [g * q for g, q in zip(gaussian_prob, Q_prob)]
+                            elif self.pType == 2 :
+                                ##### using gaussian #####
+                                prob = gaussian_prob
+                            filtered_indices = [i for i, p in enumerate(prob) if p > self.threshold]
+                            
                             if filtered_indices:
                                 Q_values = [temp_vec[i] for i in filtered_indices]
                                 max_Q_value = max(Q_values)
                                 action = filtered_indices[Q_values.index(max_Q_value)]
                             else :
-                                action = np.random.choice(np.arange(0, 31), p=np.array(combined_prob)/np.sum(combined_prob))
-                            
+                                action = np.random.choice(np.arange(0, 31), p=np.array(prob)/np.sum(prob))
                         else :
                             while True :
                                 action = np.argmax(temp_vec)
