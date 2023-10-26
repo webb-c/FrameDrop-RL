@@ -248,7 +248,7 @@ class FrameEnv():
         # get importance
         self.iList = []
 
-        # reward 1 : max object num
+        # reward 1 : max object num 
         iMax = 1
         iMin = -1 * self.beta
         maxNum = max(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
@@ -257,8 +257,8 @@ class FrameEnv():
             normalizedImportance = (iMax - iMin)*(importance) + iMin
             self.iList.append(normalizedImportance)
         _, s, a, s_prime = self.transList
-        r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1])) / self.fps
-        
+        # r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1])) / self.fps
+        r = (sum(self.iList[a+1:])/len(self.iList[a+1:])) - (sum(self.iList[:a+1])/len(self.iList[:a+1]))  # TODO: new reward
         # # reward 2 : avg object num
         # avgNum = statistics.mean(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
         # for f in range(self.fps) :
