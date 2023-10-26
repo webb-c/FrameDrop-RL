@@ -10,7 +10,7 @@ random.seed(42)
 INF = float("inf")
 
 class Agent():
-    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, threshold=0.05, std=5, pType=1, isRun=False, masking=True, isContinue=False, isSoft=False):
+    def __init__(self, qTable=[], eps_init=1, eps_decrese=0.01, eps_min=0.1, fps=30, lr=0.1, gamma=0.9, stateNum=15, threshold=0.05, std=5, pType=1, threshold_decrese=0.0002, isRun=False, masking=True, isContinue=False, isSoft=False):
         self.eps = eps_init
         self.eps_decrese = eps_decrese
         self.eps_min = eps_min
@@ -29,6 +29,7 @@ class Agent():
         # ********** NEW **********
         self.isSoft = isSoft
         self.threshold = threshold
+        self.threshold_decrese = threshold_decrese
         self.std = std
         self.pType = pType
     
@@ -53,6 +54,7 @@ class Agent():
     
     # requireSkip = fps - A(t)
     def get_action(self, s, requireskip, randAction=True):
+        action = 0
         if self.isFirst and requireskip == self.fps :
             requireskip -= 1
             self.isFirst = False
@@ -75,7 +77,9 @@ class Agent():
                     # ***** hard-soft *****
                     if self.masking : 
                         if self.isSoft:
-                            action = self.sample_gaussian(mean=requireskip, std=self.std)  #TODO std parameter?
+                            gaussian_prob = self.discrete_gaussian_prob(mean=requireskip, std=self.std)
+                            filtered_indices = [i for i, p in enumerate(gaussian_prob) if p > self.threshold]
+                            action = random.choice(filtered_indices)
                         else :
                             action = random.choice(self.actionSpace[requireskip:])
                     else : 
@@ -98,15 +102,16 @@ class Agent():
                             action = np.random.choice(np.arange(0, 31), p=combined_prob / np.sum(combined_prob))
                             """
                             ##### probabiltiy Type #####
-                            if self.pType == 1 :
+                            if self.pType == 1 or self.pType == 3:
                                 ##### using joint #####
                                 Q_prob = self.softmax(np.array(temp_vec))
                                 prob = [g * q for g, q in zip(gaussian_prob, Q_prob)]
-                            elif self.pType == 2 :
+                                prob = self.softmax(np.array(prob))
+                            elif self.pType == 2 or self.pType == 4:
                                 ##### using gaussian #####
                                 prob = gaussian_prob
+                                
                             filtered_indices = [i for i, p in enumerate(prob) if p > self.threshold]
-                            
                             if filtered_indices:
                                 Q_values = [temp_vec[i] for i in filtered_indices]
                                 max_Q_value = max(Q_values)
@@ -127,7 +132,7 @@ class Agent():
         #TODO
         requireskip, s, a, s_prime, r = trans
         self.qTable[s, a] = self.qTable[s, a] + self.lr * \
-            (r + np.max(self.qTable[s_prime, :]) - self.qTable[s, a])
+            (r + self.gamma * np.max(self.qTable[s_prime, :]) - self.qTable[s, a])
         """
         self.qTable[s, a] = self.qTable[s, a] + self.lr * \
             (r + np.max(self.qTable[s_prime, requireskip:]) - self.qTable[s, a])
@@ -157,4 +162,11 @@ class Agent():
     def decrease_eps(self):
         self.eps -= self.eps_decrese
         self.eps = max(self.eps, self.eps_min)
-        print("epsilon :", self.eps)
+        ##### change t #####
+        if self.pType == 3 or self.pType == 4 :
+            self.threshold += self.threshold_decrese
+            if 0.075 <= self.threshold :
+                self.threshold = 0.075
+            elif self.threshold <= 0.01 :
+                self.threshold = 0.01
+        print("epsilon :", self.eps, "threshold :", self.threshold)

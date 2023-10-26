@@ -43,7 +43,7 @@ def str2bool(v) :
 def parge_opt(known=False) :
     parser = argparse.ArgumentParser()
     parser.add_argument("-ei", "--epsilonInit", type=int, default=1, help="epsilon init value")
-    parser.add_argument("-ed", "--epsilonDecreseRate", type=float, default=0.01, help="epsilon decrese value")
+    parser.add_argument("-ed", "--epsilonDecreseRate", type=float, default=0.005, help="epsilon decrese value")
     parser.add_argument("-em", "--epsilonMinimum", type=float, default=0.1, help="epsilon minimum value")
     
     parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
@@ -62,6 +62,7 @@ def parge_opt(known=False) :
     # *** soft ***
     parser.add_argument("-sw", "--softWeight", type=float, default=0.9, help="weight for combine soft and Q")
     parser.add_argument("-t", "--threshold", type=float, default=0.05, help="init threshold for select feasible set")
+    parser.add_argument("-td", "--threshold_decrese", type=float, default=0.0002, help="threshold decrease rate")
     parser.add_argument("-std", "--std", type=float, default=5, help="std for gaussian distribution")
     parser.add_argument("-pt", "--pType", type=int, default=1, help="1 is combined 2 is Gaussian")
     # *** require ***
@@ -107,7 +108,7 @@ def _main(opt):
     
     writer = SummaryWriter(logdir)
     envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft)   # etc
-    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, threshold=opt.threshold, std=opt.std, pType=opt.pType, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
+    agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=gamma, stateNum=opt.stateNum, threshold=opt.threshold, std=opt.std, pType=opt.pType, threshold_decrese=opt.threshold_decrese, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
     randAction = True
     for epi in range(episode_maxlen):       
         print("episode :", epi)
