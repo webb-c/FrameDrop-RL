@@ -258,7 +258,14 @@ class FrameEnv():
             self.iList.append(normalizedImportance)
         _, s, a, s_prime = self.transList
         # r = (sum(self.iList[a+1:]) - sum(self.iList[:a+1])) / self.fps
-        r = (sum(self.iList[a+1:])/len(self.iList[a+1:])) - (sum(self.iList[:a+1])/len(self.iList[:a+1]))  # TODO: new reward
+        plusdiv = len(self.iList[a+1:])
+        minusdiv = len(self.iList[:a+1]) 
+        if plusdiv == 0 :
+            plusdiv = 1
+        if  minusdiv == 0:
+            minusdiv = 1
+
+        r = (sum(self.iList[a+1:])/plusdiv) - (sum(self.iList[:a+1])/minusdiv)  # TODO: new reward
         # # reward 2 : avg object num
         # avgNum = statistics.mean(self.objNumList[self.curFrameIdx : self.curFrameIdx+self.fps+1])
         # for f in range(self.fps) :
