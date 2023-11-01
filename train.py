@@ -79,7 +79,7 @@ def _main(opt):
     # setting
     logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     # episode_maxlen = 300, 600, 2000
-    episode_maxlen = 600
+    episode_maxlen = 300
     epi_actions = 500
 
     data_maxlen = 10000
