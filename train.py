@@ -89,7 +89,7 @@ def _main(opt):
     videoName = opt.videoPath.split("/")[-1].split(".")[0]
     clusterPath = "models/cluster_"+videoName+".pkl"
     
-    # detect result 편의를 위해...
+    # detect result 편의를 위해... 5개 정도 
     if videoName == "jetson-train" :
         detectResultPath = "utils/yolov5/runs/detect/exp/labels"
     elif videoName == "RoadVideo-train" :

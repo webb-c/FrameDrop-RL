@@ -64,7 +64,7 @@ def parge_opt(known=False) :
 
     parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
     parser.add_argument("-con", "--isContinue", type=str2bool, default=False, help="for Jetson Training")
-    parser.add_argument("-sh", "--showflowrate", typr=str2bool, default=True, help="show action and flow rate")
+    parser.add_argument("-sh", "--showflowrate", type=str2bool, default=True, help="show action and flow rate")
     
     # *** require ***
     parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="trinaed qtable path")
@@ -77,7 +77,7 @@ def parge_opt(known=False) :
 
 def _main(opt) :
     qTable = _get_q_table(opt.qTablePath)
-    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=opt.clusterPath, fps=opt.fps, w=opt.window, stateNum=opt.stateNume, resultPath="-", isClusterexist=opt.isClusterexist, isRun=True, beta=opt.beta, runmode=opt.pipe, masking=opt.masking, outVideoPath=opt.outVideoPath)   # etc
+    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=opt.clusterPath, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, resultPath="-", isClusterexist=opt.isClusterexist, isRun=True, beta=opt.beta, runmode=opt.pipeNum, masking=opt.masking, outVideoPath=opt.outVideoPath)   # etc
     agentV = Agent(qTable=qTable, eps_init=1.0, eps_decrese=0.01, eps_min=0.1, fps=opt.fps, lr=0.15, gamma=0.9, stateNum=opt.stateNum, isRun=True, masking=opt.masking)
     done = False
     print("Ready ...")
