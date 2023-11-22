@@ -16,7 +16,7 @@ Example of Usage :
 # python train.py -qp models/q_table_unmask_YOLO_jetson.npy  -con True -lr {learningrate}
 
 """
-
+import torch
 import numpy as np
 from tqdm import tqdm
 from agent import Agent
@@ -75,7 +75,7 @@ def parse_opt(known=False) :
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-soft", "--isSoft", type=str2bool, default=False, help="using soft-constraint?")
     parser.add_argument("-con", "--isContinue", type=str2bool, default=False, help="for Jetson Training")
-    parser.add_argument("-method", "--method", type=str, default="PPO", hlpe="learning algorithm")
+    parser.add_argument("-method", "--method", type=str, default="PPO", help="learning algorithm")
     parser.add_argument("-pipe", "--pipeNum", type=int, default=1, help="pipe")
     
     # *** PPO ***
@@ -88,11 +88,13 @@ def parse_opt(known=False) :
     parser.add_argument("-episode", "--num_episode", type=int, default=500, help="number of train episode")
     parser.add_argument("-Kepoch", "--K_epochs", type=int, default=3, help="update policy for K Epoch")
     parser.add_argument("-buff", "--buffer_size", type=int, default=10, help="PPO buffer size")
-    parser.add_argument("-rollout", "--rollout_len", type=int, defalt=320, help="i.e., training interval")
+    parser.add_argument("-rollout", "--rollout_len", type=int, default=320, help="i.e., training interval")
     parser.add_argument("-batch", "--minibatch_size", type=int, default=32, help="minibatch size")
     
     parser.add_argument("-a", "--alpha", type=float, default=0.5, help="hyperparameter alpha for cal Reward")
 
+    parser.add_argument("-sdim", "--state_dim", type=int, default=2, help="state vector dimension")
+    parser.add_argument("-anum", "--action_num", type=int, default=30, help="number of action (range)")
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
 def _main(opt, conf):
@@ -117,18 +119,18 @@ def _main(opt, conf):
         
     print_args(vars(opt))
     
+    data_maxlen = 10000
+    replayBuffer_len = 1000
+    replayBuffer_maxlen = 20000
+    qTablePath = opt.qTablePath
+    isClusterexist = opt.isClusterexist
+    
+    clusterPath = "models/cluster_"+videoName+".pkl"
     envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft)   # etc
 
     if opt.method == "Q-learning" :
         epi_actions = 500
-        data_maxlen = 10000
-        replayBuffer_len = 1000
-        replayBuffer_maxlen = 20000
-        
-        clusterPath = "models/cluster_"+videoName+".pkl"
-        qTablePath = opt.qTablePath
-        isClusterexist = opt.isClusterexist
-        
+
         agentV = Agent(eps_init=opt.epsilonInit, eps_decrese=opt.epsilonDecreseRate, eps_min=opt.epsilonMinimum, fps=opt.fps, lr=opt.lr, gamma=opt.gamma, stateNum=opt.stateNum, threshold=opt.threshold, std=opt.std, pType=opt.pType, threshold_decrese=opt.threshold_decrese, isRun=False, masking=masking, isContinue=isContinue, isSoft=opt.isSoft)
         randAction = True
         for epi in range(episode_maxlen):       
@@ -186,6 +188,7 @@ def _main(opt, conf):
         for episode in tqdm(range(episode_maxlen)):
             epi_reward = 0
             state = envV.reset(showLog=True)
+            state = torch.tensor(state)
             done = False
             while not done :
                 for t in range(rollout_len):

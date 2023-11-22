@@ -30,8 +30,8 @@ class RolloutBuffer:
                 done_batch.append([done_mask])
                 guide_batch.append([guide])
             
-            mini_batch = torch.tensor(s_batch, dtype=torch.float),  torch.tensor(a_batch, dtype=torch.int), torch.tensor(r_batch, dtype=torch.float), \
-                torch.tensor(s_prime_batch, dtype=torch.float), torch.tensor(done_batch, dtype=torch.int), torch.tensor(prob_a_batch, dtype=torch.float), torch.tensor(guide_batch, dtype=torch.int)
+            mini_batch = torch.tensor(s_batch, dtype=torch.float),  torch.tensor(a_batch, dtype=torch.float), torch.tensor(r_batch, dtype=torch.float), \
+                torch.tensor(s_prime_batch, dtype=torch.float), torch.tensor(done_batch, dtype=torch.float), torch.tensor(prob_a_batch, dtype=torch.float), torch.tensor(guide_batch, dtype=torch.float)
 
             self.batch_data.append(mini_batch)
     
@@ -78,7 +78,7 @@ class RolloutBuffer:
 
 class PPOAgent(nn.Module):
     def __init__(self, config):
-        super(Agent, self).__init__()
+        super(PPOAgent, self).__init__()
         self.buffer = RolloutBuffer(config["buffer_size"], config["minibatch_size"])
         # parameter setting
         ### parameter for PPO
@@ -172,7 +172,6 @@ class PPOAgent(nn.Module):
         input: state -> Tuple[float, float]; guide -> int; train -> bool
         output: actions -> Tuple[int, int, float]; probs -> Tuple[float, float, float]
         """
-        img, feature = state
         if not train:
             self.eval()
             with torch.no_grad():
