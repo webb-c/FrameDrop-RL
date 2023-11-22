@@ -153,7 +153,7 @@ class FrameEnv():
                     for frame in self.processedFrameList :
                         self.out.write(frame)
                     self.out.release()
-                return -1, True
+                return -1, 0, True
             self.frameList.append(temp)
             if a == action :
                 self.processList.append(temp)
@@ -184,7 +184,7 @@ class FrameEnv():
                 for frame in self.processedFrameList :
                     self.out.write(frame)
                 self.out.release()
-            return -1, True
+            return -1, 0, True
         
         self.omnet.get_omnet_message()
         self.omnet.send_omnet_message("reward") 

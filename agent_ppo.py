@@ -17,7 +17,7 @@ class RolloutBuffer:
         """ object : buffer에 저장된 buffer_size * minibatch_size개의 데이터를 buffer_size개의 minibatch가 담긴 데이터로 전환하여 저장합니다."""
         self.batch_data = []
         for i in range(self.buffer_size):
-            s_batch, a_batch, r_batch, s_prime_batch, prob_a_batch, done_batch, guide_batch = [], [], [], [], []
+            s_batch, a_batch, r_batch, s_prime_batch, prob_a_batch, done_batch, guide_batch = [], [], [], [], [], [], []
             for j in range(self.minibatch_size):
                 transition = self.buffer.pop()
                 s, a, r, s_prime, prob_a, done, guide = transition
@@ -30,8 +30,8 @@ class RolloutBuffer:
                 done_batch.append([done_mask])
                 guide_batch.append([guide])
             
-            mini_batch = torch.tensor(s_batch, dtype=torch.float),  torch.tensor(a_batch, dtype=torch.float), torch.tensor(r_batch, dtype=torch.float), \
-                torch.tensor(s_prime_batch, dtype=torch.float), torch.tensor(done_batch, dtype=torch.float), torch.tensor(prob_a_batch, dtype=torch.float), torch.tensor(guide_batch, dtype=torch.float)
+            mini_batch = torch.tensor(s_batch),  torch.tensor(a_batch, dtype=torch.float), torch.tensor(r_batch, dtype=torch.float), \
+                torch.tensor(s_prime_batch), torch.tensor(done_batch, dtype=torch.float), torch.tensor(prob_a_batch, dtype=torch.float), torch.tensor(guide_batch, dtype=torch.float)
 
             self.batch_data.append(mini_batch)
     

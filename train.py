@@ -204,12 +204,15 @@ def _main(opt, conf):
             total_reward += epi_reward
             
             # record total_reward & avg_reward & loss for each episode
-            writer.add_scalar("total_reward", epi_reward, episode)
+            writer.add_scalar("Reward/one_Reward", epi_reward, episode)
+            writer.add_scalar("Network/Diff", (envV.ASum - envV.aSum), epi)
+            writer.add_scalar("Network/target_A(t)", envV.ASum, epi)
+            writer.add_scalar("Network/send_a(t)", envV.aSum, epi)
             if loss is not None :
                 writer.add_scalar("loss", loss.mean().item(), episode)
                 writer.add_scalar("value_loss", sum(value_loss).mean().item(), episode)
                 writer.add_scalar("policy_loss", sum(policy_loss).mean().item(), episode)
-            
+
             if episode % print_interval == 0 :
                 print("\n# of episode :{}, avg reward : {:.2f}, total reward : {:.2f}".format(episode, total_reward/print_interval, total_reward))
                 total_reward = 0
