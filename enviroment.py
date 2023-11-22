@@ -179,9 +179,9 @@ class FrameEnv():
         self.omnet.send_omnet_message("ACK")
         
         newA = math.floor(ratioA*(self.fps))
-        self._triggered_by_guide(newA, action)
+        r = self._triggered_by_guide(newA, action)
         
-        return self.state, False
+        return self.state, r, False
 
     def _triggered_by_guide(self, newA, action):
         self.sendA = self.fps - action
@@ -207,11 +207,11 @@ class FrameEnv():
         self.transList.append(self.state)
         # reward
         if not self.isRun :
-            self._get_reward()
+            r = self._get_reward()
         self.buffer.put(self.transList)
         # print(self.transList)
         self.transList = []
-        return False
+        return r
     
     def _get_FFT_List(self, exist=True):
         if not exist : 
@@ -279,7 +279,7 @@ class FrameEnv():
         self.reward_sum += r
         if self.showLog :
             self.logList.append("A(t): "+str(self.prevA)+" action: "+str(a)+" A(t+1): "+str(self.targetA)+" reward: "+str(r))
-        return
+        return r
 
     def trans_show(self) :
         for row in self.logList :
