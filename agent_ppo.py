@@ -113,7 +113,7 @@ class PPOAgent(nn.Module):
         """ object: state를 policy network에 통과시켜 얻은 mu, std로부터 action의 Normal distribution을 계산해 반환합니다."""
         x = self.shared_layer(state)
 
-        if not self.maksing :
+        if not self.masking :
             x_mu = self.actor_mu(x)
             if batch :
                 x_mu = x_mu.transpose(0, 1)
@@ -160,6 +160,8 @@ class PPOAgent(nn.Module):
         input: state -> Tuple[torch.Tensor, torch.Tensor]
         output: value -> torch.Tensor[float]
         """
+        state = torch.tensor(state)
+        state = state.float()
         x = self.shared_layer(state)
         v = self.critic(x)
         
@@ -172,6 +174,8 @@ class PPOAgent(nn.Module):
         input: state -> Tuple[float, float]; guide -> int; train -> bool
         output: actions -> Tuple[int, int, float]; probs -> Tuple[float, float, float]
         """
+        state = torch.tensor(state)
+        state = state.float()
         if not train:
             self.eval()
             with torch.no_grad():

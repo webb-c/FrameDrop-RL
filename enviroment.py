@@ -34,7 +34,8 @@ class ReplayBuffer():
 
 
 class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=1, masking=True, beta=1, outVideoPath="./output.mp4", isSoft=False, method=opt.method):
+    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=1, masking=True, beta=1, outVideoPath="./output.mp4", isSoft=False, method="PPO"):
+        self.method = method
         self.isDetectionexist = isDetectionexist
         self.isClusterexist = isClusterexist
         self.beta = beta
@@ -63,26 +64,29 @@ class FrameEnv():
         if not self.isRun :
             self._detect(self.isDetectionexist)
         self.w = w
-        self.model = cluster_init(k=stateNum)
-        if self.isClusterexist :  
-            print("load cluster model in init...")
-            self.model = cluster_load(self.clusterPath)
-        else :
-            print("clustering in init...")
-            capTemp = cv2.VideoCapture(self.videoPath)
-            _, f_prev = capTemp.read()
-            idx = 0
-            self.data.append([0, self.FFTList[idx]])
-            while True :
-                idx += 1
-                ret, f_cur = capTemp.read()
-                if not ret :
-                    capTemp.release()
-                    break
-                self.data.append([get_MSE(f_prev, f_cur), self.FFTList[idx]])
-                f_prev = f_cur            
-            self.model = cluster_train(self.model, np.array(self.data), clusterPath=self.clusterPath, videoName=self.videoName, visualize=True)
-            self.isClusterexist = True
+        
+        if self.method == "Q-learning" :
+            self.model = cluster_init(k=stateNum)
+            if self.isClusterexist :  
+                print("load cluster model in init...")
+                self.model = cluster_load(self.clusterPath)
+            else :
+                print("clustering in init...")
+                capTemp = cv2.VideoCapture(self.videoPath)
+                _, f_prev = capTemp.read()
+                idx = 0
+                self.data.append([0, self.FFTList[idx]])
+                while True :
+                    idx += 1
+                    ret, f_cur = capTemp.read()
+                    if not ret :
+                        capTemp.release()
+                        break
+                    self.data.append([get_MSE(f_prev, f_cur), self.FFTList[idx]])
+                    f_prev = f_cur            
+                self.model = cluster_train(self.model, np.array(self.data), clusterPath=self.clusterPath, videoName=self.videoName, visualize=True)
+                self.isClusterexist = True
+        
         # record
         self.ASum = 0
         self.aSum = 0
@@ -120,7 +124,10 @@ class FrameEnv():
             self.originState = [0, self.FFTList[self.curFrameIdx]]
         self.state = 0
         self.transList = []
-        self.state = cluster_pred(self.originState, self.model)
+        if self.method == "Q-learning" :
+            self.state = cluster_pred(self.originState, self.model)
+        else :
+            self.state = self.originState
         if self.showLog :   
             self.logList = []
         return self.state
@@ -153,7 +160,13 @@ class FrameEnv():
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("action")
                 self.omnet.get_omnet_message()
-                self.omnet.send_omnet_message(str((self.skipTime+action+1)/self.fps))
+                if self.method == "PPO":
+                    temp = (self.skipTime+action+1)/self.fps
+                    send_action = temp.item()
+                else :
+                    send_action = (self.skipTime+action+1)/self.fps
+                
+                self.omnet.send_omnet_message(str(send_action))
                 self.skipTime = 0
             elif a > action : 
                 self.processList.append(temp)
@@ -202,8 +215,11 @@ class FrameEnv():
             self.originState = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame)]
         else :
             self.originState = [get_MSE(self.prev_frame, self.frame), self.FFTList[self.curFrameIdx+self.fps]]
-        
-        self.state = cluster_pred(self.originState, self.model)
+    
+        if self.method == "Q-learning" :
+            self.state = cluster_pred(self.originState, self.model)
+        else :
+            self.state = self.originState
         self.transList.append(self.state)
         # reward
         if not self.isRun :

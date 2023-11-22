@@ -126,7 +126,7 @@ def _main(opt, conf):
     isClusterexist = opt.isClusterexist
     
     clusterPath = "models/cluster_"+videoName+".pkl"
-    envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft)   # etc
+    envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft, method=opt.method)   # etc
 
     if opt.method == "Q-learning" :
         epi_actions = 500
@@ -188,15 +188,14 @@ def _main(opt, conf):
         for episode in tqdm(range(episode_maxlen)):
             epi_reward = 0
             state = envV.reset(showLog=True)
-            state = torch.tensor(state)
             done = False
             while not done :
                 for t in range(rollout_len):
                     guide = opt.fps - envV.targetA
                     action, action_prob = agentV.get_actions(state, guide)
+                    # print(action)
                     state_prime, reward, done = envV.step(action)
                     agentV.put_data((state, action, reward, state_prime, action_prob, done, guide)) 
-                    reward = reward.item()
                     epi_reward += reward
                     state = state_prime
                     if done : 
@@ -211,7 +210,7 @@ def _main(opt, conf):
                 writer.add_scalar("value_loss", sum(value_loss).mean().item(), episode)
                 writer.add_scalar("policy_loss", sum(policy_loss).mean().item(), episode)
             
-            if episode % print_interval == 0 and step != 0:
+            if episode % print_interval == 0 :
                 print("\n# of episode :{}, avg reward : {:.2f}, total reward : {:.2f}".format(episode, total_reward/print_interval, total_reward))
                 total_reward = 0
 
