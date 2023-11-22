@@ -2,9 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from tqdm import tqdm
-from torch.distributions import Normal, Categorical
-from utils import print_nested_info, load_model
+from torch.distributions import Normal
 
 
 class RolloutBuffer:
