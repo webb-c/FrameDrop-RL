@@ -30,8 +30,8 @@ class RolloutBuffer:
                 done_batch.append([done_mask])
                 guide_batch.append([guide])
             
-            mini_batch = torch.tensor(s_batch),  torch.tensor(a_batch, dtype=torch.float), torch.tensor(r_batch, dtype=torch.float), \
-                torch.tensor(s_prime_batch), torch.tensor(done_batch, dtype=torch.float), torch.tensor(prob_a_batch, dtype=torch.float), torch.tensor(guide_batch, dtype=torch.float)
+            mini_batch = torch.tensor(s_batch, dtype=torch.float),  torch.tensor(a_batch, dtype=torch.float), torch.tensor(r_batch, dtype=torch.float), \
+                torch.tensor(s_prime_batch, dtype=torch.float), torch.tensor(done_batch, dtype=torch.float), torch.tensor(prob_a_batch, dtype=torch.float), torch.tensor(guide_batch, dtype=torch.float)
 
             self.batch_data.append(mini_batch)
     
@@ -115,15 +115,17 @@ class PPOAgent(nn.Module):
 
         if not self.masking :
             x_mu = self.actor_mu(x)
-            if batch :
-                x_mu = x_mu.transpose(0, 1)
+            # if batch :
+                # x_mu = x_mu.transpose(0, 1)
             mu = self.action_num * torch.sigmoid(x_mu)
         else :
             mu = guide
 
         x_std = self.actor_std(x)
-        if batch :
-            x_std = x_std.transpose(0, 1)
+        # if batch :
+            # print("before: ", x_std.shape)
+            # x_std = x_std.transpose(0, 1)
+            # print("after: ", x_std.shape)
         std = F.softplus(x_std)
         
         dist = Normal(mu, std)
@@ -216,13 +218,14 @@ class PPOAgent(nn.Module):
             for _ in range(self.K_epochs): 
                 for mini_batch in data:
                     s, a, r, s_prime, done_mask, old_log_probs, td_target, advantages, guide = mini_batch
-                    old_log_probs = old_log_probs.transpose(0, 1)
+                    # old_log_probs = old_log_probs.transpose(0, 1)
                     actions, log_probs = self.get_actions(s, guide, train=True)
 
                     v_loss = F.smooth_l1_loss(self.get_value(s) , td_target)
                     v_loss_list.append(v_loss)
                     
-                    ratio = torch.exp(log_probs - old_log_probs).view(-1, 1)
+                    ratio = torch.exp(log_probs - old_log_probs)
+                    # print("ratio & adv", old_log_probs.shape, log_probs.shape, ratio.shape, advantages.shape)
                     surr1 = ratio * advantages
                     surr2 = torch.clamp(ratio, 1-self.eps_clip, 1+self.eps_clip) * advantages
                     policy_loss = -torch.min(surr1, surr2)

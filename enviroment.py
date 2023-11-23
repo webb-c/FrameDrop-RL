@@ -160,12 +160,7 @@ class FrameEnv():
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("action")
                 self.omnet.get_omnet_message()
-                if self.method == "PPO":
-                    temp = (self.skipTime+action+1)/self.fps
-                    send_action = temp.item()
-                else :
-                    send_action = (self.skipTime+action+1)/self.fps
-                
+                send_action = (self.skipTime+action+1)/self.fps
                 self.omnet.send_omnet_message(str(send_action))
                 self.skipTime = 0
             elif a > action : 

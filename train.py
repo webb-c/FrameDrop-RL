@@ -194,20 +194,21 @@ def _main(opt, conf):
                     guide = opt.fps - envV.targetA
                     action, action_prob = agentV.get_actions(state, guide)
                     # print(action)
+                    action = action.item()
                     state_prime, reward, done = envV.step(action)
+                    if done : 
+                        break
                     agentV.put_data((state, action, reward, state_prime, action_prob, done, guide)) 
                     epi_reward += reward
                     state = state_prime
-                    if done : 
-                        break
                 loss, value_loss, policy_loss = agentV.train_net()
             total_reward += epi_reward
             
             # record total_reward & avg_reward & loss for each episode
             writer.add_scalar("Reward/one_Reward", epi_reward, episode)
-            writer.add_scalar("Network/Diff", (envV.ASum - envV.aSum), epi)
-            writer.add_scalar("Network/target_A(t)", envV.ASum, epi)
-            writer.add_scalar("Network/send_a(t)", envV.aSum, epi)
+            writer.add_scalar("Network/Diff", (envV.ASum - envV.aSum), episode)
+            writer.add_scalar("Network/target_A(t)", envV.ASum, episode)
+            writer.add_scalar("Network/send_a(t)", envV.aSum, episode)
             if loss is not None :
                 writer.add_scalar("loss", loss.mean().item(), episode)
                 writer.add_scalar("value_loss", sum(value_loss).mean().item(), episode)
