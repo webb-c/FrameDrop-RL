@@ -240,4 +240,3 @@ class PPOAgent(nn.Module):
                     self.optimization_step += 1
         
         return loss, v_loss_list, policy_loss_list
-                    

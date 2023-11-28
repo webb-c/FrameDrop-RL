@@ -6,8 +6,8 @@ data/*
 !data/RoadVideo-test.mp4
 !data/jetson-test.mp4
 
-models/BACKUP
-models/TrialAndError
+models/*
+!models/yolov5v6.pt
 
 results/*
 !results/cluster_jetson-train.png

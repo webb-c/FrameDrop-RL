@@ -16,7 +16,9 @@ Example of Usage :
 # python train.py -qp models/q_table_unmask_YOLO_jetson.npy  -con True -lr {learningrate}
 
 """
+import os
 import torch
+from pyprnt import prnt
 import numpy as np
 from tqdm import tqdm
 from agent import Agent
@@ -28,11 +30,20 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train
 from utils.yolov5.utils.general import print_args
 
-# test 
-
-def _save_q_table(qTable, filePath="models/q_table.npy") :
+# save. (soon... move to util) 
+def save_q_table(qTable, filename="q_table") :
+    default = "./models/ndarray/"
+    path = os.path.join(default, filename+".npy")
+    np.save(path, qTable)
     print("save!")
-    np.save(filePath, qTable)
+
+
+def save_weight(model, filename="agent_weight") :
+    default = "./models/weight/"
+    path = os.path.join(default, filename+".pt")
+    torch.save(model.state_dict(), path)
+    print("save!")
+
 
 def str2bool(v) :
     if isinstance(v, bool) :
@@ -70,7 +81,6 @@ def parse_opt(known=False) :
     parser.add_argument("-std", "--std", type=float, default=5, help="std for gaussian distribution")
     parser.add_argument("-pt", "--pType", type=int, default=1, help="1 is combined 2 is Gaussian")
     # *** require ***
-    parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="qtable path")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-soft", "--isSoft", type=str2bool, default=False, help="using soft-constraint?")
@@ -97,9 +107,11 @@ def parse_opt(known=False) :
     parser.add_argument("-anum", "--action_num", type=int, default=30, help="number of action (range)")
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
+
 def _main(opt, conf):
     # setting
-    logdir="../total_logs/train/"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    logdir="./results/logs/train/"+start_time
     writer = SummaryWriter(logdir)
 
     episode_maxlen = conf["num_episode"]
@@ -116,18 +128,20 @@ def _main(opt, conf):
         detectResultPath = "utils/yolov5/runs/detect/exp3/labels"
     else :
         detectResultPath=opt.detectResultPath
-        
+    
+    save_name = start_time
     print_args(vars(opt))
     
     data_maxlen = 10000
     replayBuffer_len = 1000
     replayBuffer_maxlen = 20000
-    qTablePath = opt.qTablePath
     isClusterexist = opt.isClusterexist
     
     clusterPath = "models/cluster_"+videoName+".pkl"
     envV = FrameEnv(videoName=videoName, videoPath=opt.videoPath, clusterPath=clusterPath, resultPath=detectResultPath, data_maxlen=data_maxlen, replayBuffer_maxlen=replayBuffer_maxlen, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, isDetectionexist=opt.isDetectionexist, isClusterexist=isClusterexist, isRun=False, masking=masking, beta=opt.beta, runmode=opt.pipeNum, isSoft=opt.isSoft, method=opt.method)   # etc
 
+    print("Trining Start!")
+    
     if opt.method == "Q-learning" :
         epi_actions = 500
 
@@ -163,7 +177,7 @@ def _main(opt, conf):
                 agentV.Q_show()
                 qTable = agentV.get_q_table()
                 if epi == episode_maxlen-1 :
-                    _save_q_table(qTable, qTablePath+".npy")
+                    save_q_table(qTable, save_name)
                 # else :
                 #    _save_q_table(qTable, qTablePath+"("+str(epi)+").npy")
             if showLog :
@@ -223,11 +237,15 @@ def _main(opt, conf):
             print("sum of A(t) : ", envV.ASum, "| sum of a(t) : ", envV.aSum)
             
         envV.omnet.close_pipe()
-        return 
+        save_weight(agentV, save_name)
+        return start_time, conf
 
 
 if __name__ == "__main__":
     opt = parse_opt()
     conf = dict(**opt.__dict__)
-    _main(opt, conf)
-    print("Training Finish!")
+    start_time, conf = _main(opt, conf)
+    print("Training Finish with...")
+    print("\n- start time:\t", start_time)
+    print("\n- training setting:")
+    prnt(conf)
