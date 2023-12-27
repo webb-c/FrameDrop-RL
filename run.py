@@ -35,26 +35,15 @@ pre-trained models option :
 
 import numpy as np
 from agent import Agent
-from enviroment import FrameEnv
+from enviroment import Environment
+from utils.util import str2bool
 import argparse
 
-def _get_q_table(filePath):
-    qTable = np.load(filePath)
-    return qTable
 
-def str2bool(v) :
-    if isinstance(v, bool) :
-        return v
-    if v.lower() in ('true', 'yes', 't') :
-        return True
-    elif v.lower() in ('false', 'no', 'f') :
-        return False
-    else :
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-    
+
 def parge_opt(known=False) :
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", 1"--fps", type=int, default=30, help="frame per sec")
+    parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-w", "--window", type=int, default=30, help="importance calculate object detect range")
     parser.add_argument("-s", "--stateNum", type=int, default=15, help="clustering state Number")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
@@ -75,10 +64,9 @@ def parge_opt(known=False) :
     
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
-def _main(opt) :
-    qTable = _get_q_table(opt.qTablePath)
-    envV = FrameEnv(videoName=opt.videoName, videoPath=opt.videoPath, clusterPath=opt.clusterPath, fps=opt.fps, w=opt.window, stateNum=opt.stateNum, resultPath="-", isClusterexist=opt.isClusterexist, isRun=True, beta=opt.beta, runmode=opt.pipeNum, masking=opt.masking, outVideoPath=opt.outVideoPath)   # etc
-    agentV = Agent(qTable=qTable, eps_init=1.0, eps_decrese=0.01, eps_min=0.1, fps=opt.fps, lr=0.15, gamma=0.9, stateNum=opt.stateNum, isRun=True, masking=opt.masking)
+def main(conf) :
+    envV = Environment(conf) 
+    agentV = Agent(conf, run=True)
     done = False
     print("Ready ...")
     s = envV.reset()
@@ -109,5 +97,5 @@ def _main(opt) :
 
 if __name__ == "__main__":
     opt = parge_opt()
-    _main(opt)
+    main(opt)
     print("Inference Finish!")

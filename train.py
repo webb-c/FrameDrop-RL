@@ -18,6 +18,7 @@ Example of Usage :
 """
 import os
 import cv2
+import re
 from pyprnt import prnt
 from typing import Tuple, List, Dict, Union
 import numpy as np
@@ -95,7 +96,7 @@ def path_manager(video_path: str) -> Tuple[str, str, str] :
         Tuple[cluster_path, detection_path, FFT_path]
     """
     root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/", "./data/FFT/"
-    video_name = video_path.split("/")[-1].split(".")[0]
+    video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
     cluster_path = os.path.join(root_cluster, video_name + ".pkl")
     detection_path = os.path.join(root_detection, video_name + "/labels")
     FFT_path = os.path.join(root_FFT, video_name + ".npy")
@@ -150,9 +151,10 @@ def verifier(conf: Dict[str, Union[bool, int, float]], cluster_path: str, detect
         detection_path (str): _description_
         FFT_path (str): _description_
     """
+    
     if not os.path.exists(detection_path):
         root_detection =  "./data/detect/"
-        video_name = conf['video_path'].split("/")[-1].split(".")[0]
+        video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
         command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
         inference(command)
     
@@ -224,7 +226,7 @@ def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union
                 a = agent.get_action(s, require_skip, rand)
                 s, _, done = env.step(a)
             if env.buffer.get_size() < conf['start_buffer_size']:
-                print("buffer size: ", env.buffer.size())
+                print("buffer size: ", env.buffer.get_size())
             else :
                 rand = False
                 for _ in range(conf["sampling_num"]):  # # of sampling count
@@ -239,7 +241,7 @@ def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union
             print("sum of A(t) : ", env.ASum, "| sum of a(t) : ", env.aSum)
             if epi == 0 or (epi % 50) == 0 or epi == conf["episode_num"]-1 :
                 agent.show_qtable()
-                env.trans_show()
+                env.show_trans()
             
             env.omnet.get_omnet_message()
             env.omnet.send_omnet_message("finish")
