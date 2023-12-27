@@ -35,21 +35,12 @@ class ReplayBuffer():
 
 class Environment():
     def __init__(self, conf):
-        self.beta = beta
-        self.buffer = ReplayBuffer(replayBuffer_maxlen)
-        self.data = collections.deque(maxlen=data_maxlen)
-        if runmode == 1 :
+        self.buffer = ReplayBuffer(conf['buffer_size'])
+        if conf['pipe_num'] == 1:
             self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
-        elif runmode == 2 :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_2", 200000)
-        elif runmode == 3 :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_3", 200000)
-        elif runmode == 4 :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_4", 200000)
-        elif runmode == 5 :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_5", 200000)
-        elif runmode == 6 :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_6", 200000)
+        else :
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000)
+        self.beta = beta
         self.videoName = videoName
         self.videoPath = videoPath
         self.resultPath = resultPath

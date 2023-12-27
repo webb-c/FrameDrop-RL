@@ -34,7 +34,6 @@ from utils.cal_quality import get_FFT, get_MSE
 from utils.yolov5.detect import inference
 
 
-
 def parse_common_args() :
     parser = argparse.ArgumentParser()
     
@@ -42,9 +41,9 @@ def parse_common_args() :
     parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
-    parser.add_argument("-con", "--is_ontinue", type=str2bool, default=False, help="continue learning?")
+    parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
-    parser.add_argument("-reward", "--reward_method", type=str, default="using reward function")
+    parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
 
     return parser.parse_args(), parser
@@ -109,9 +108,9 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
 
     Args:
         start_time: 학습을 시작한 시간
-        conf (Dict): 학습에 사용하는 argument에 대한 정보
-        default_conf (Dict): defult 절정의 argument에 대한 정보
-
+        conf (Dict): train argument
+        default_conf (Dict): train argument's default value
+        
     Returns:
         Tuple[log_path, save_path]
     """
@@ -142,15 +141,22 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
     return log_path, save_path
 
 
-def verifier(conf, cluster_path: str, detection_path: str, FFT_path: str):
-    
+def verifier(conf: Dict[str, Union[bool, int, float]], cluster_path: str, detection_path: str, FFT_path: str):
+    """경로를 전달받아서 데이터가 존재하는지 검증하고 없다면 만들어냅니다.
+
+    Args:
+        conf (Dict[str, Union[bool, int, float]]): train argument
+        cluster_path (str): _description_
+        detection_path (str): _description_
+        FFT_path (str): _description_
+    """
     if not os.path.exists(detection_path):
         root_detection =  "./data/detect/"
         video_name = conf['video_path'].split("/")[-1].split(".")[0]
         command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
         inference(command)
     
-    if not os.path.exits(FFT_path):
+    if not os.path.exists(FFT_path):
         cap = cv2.VideoCapture(conf['video_path'])
         FFTList = []
         idx = 0
@@ -185,11 +191,19 @@ def verifier(conf, cluster_path: str, detection_path: str, FFT_path: str):
 
 
 
-def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union[bool, int, float]]):
-    
+def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union[bool, int, float]]) -> bool :
+    """argument를 전달받아, 그 설정대로 강화학습을 수행합니다.
+
+    Args:
+        conf (Dict[str, Union[bool, int, float]]): train argument
+        default_conf (Dict[str, Union[bool, int, float]]): train argument's default value
+
+    Returns:
+        bool: 정상적으로 학습이 종료되면 True를 반환합니다.
+    """
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S") 
     cluster_path, detection_path, FFT_path = path_manager(conf['video_path'])
-    verifier(cluster_path, detection_path, FFT_path)
+    verifier(conf, cluster_path, detection_path, FFT_path)
     log_path, save_path = logging_mannager(start_time, conf, default_conf)
     writer = SummaryWriter(log_path)
     prnt(conf)
@@ -286,7 +300,7 @@ def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union
 
 
 if __name__ == "__main__":
-    args, default_args = parse_args()
+    default_args, args = parse_args()
     conf = dict(**args.__dict__)
     ret = main(conf, default_args)
     
