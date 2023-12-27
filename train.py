@@ -38,7 +38,7 @@ from utils.yolov5.detect import inference
 def parse_common_args() :
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("-v", "--video_path", type=str, default="data/RoadVideo-train.mp4", help="training video path") # using Jetson-video : "data/jetson-train.mp4"
+    parser.add_argument("-v", "--video_path", type=str, default="data/RoadVideo_train.mp4", help="training video path") # using Jetson-video : "data/jetson-train.mp4"
     parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
@@ -52,7 +52,7 @@ def parse_common_args() :
 
 def parse_args():
     args, parser = parse_common_args() 
-
+    
     parser.add_argument("-episode", "--episode_num", type=int, default=500, help="number of train episode")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
@@ -79,11 +79,11 @@ def parse_args():
     else:
         raise ValueError("learn_method is must be Q or PPO.")
     
-    default_args = {}
-    for arg in parser._action_groups[0]._group_actions:
-        default_args[arg.dest] = arg.default
-        
-    return default_args, parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
+    default_args_dict = vars(parser.parse_args([]))
+    custom_args_dict = vars(args)
+
+    return custom_args_dict, default_args_dict
 
 
 def path_manager(video_path: str) -> Tuple[str, str, str] :
@@ -118,7 +118,7 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
     root_log = "./results/logs/train/"
     root_save = "./models/"
     
-    name = ""
+    name = "start_time"
     if default_conf is None:
         for arg, value in conf.items():
             name += f"_{arg}_{value}"
@@ -130,7 +130,6 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
             if value != default_value:
                 name += f"_{arg}_{value}"
     
-    name += f"({start_time})"
     log_path = os.path.join(root_log, name)
     if conf['learn_method'] == "Q" :
         root_save = os.path.join(root_save, "ndarray")
@@ -302,9 +301,8 @@ def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union
 
 
 if __name__ == "__main__":
-    default_args, args = parse_args()
-    conf = dict(**args.__dict__)
-    ret = main(conf, default_args)
+    conf, default_conf = parse_args()
+    ret = main(conf, default_conf)
     
     if not ret:
         print("Training ended abnormally.")
