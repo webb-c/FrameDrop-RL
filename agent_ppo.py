@@ -94,7 +94,9 @@ class PPOAgent(nn.Module):
         self.alpha = config["alpha"]
         self.state_dim = config["state_dim"]
         self.action_num = config["action_num"]
-        
+        ### etc
+        self.now = 0
+        self.print_interval = 500
         # PPO model setting   
         self.shared_layer = nn.Sequential(
             nn.Linear(self.state_dim, 128),
@@ -130,6 +132,16 @@ class PPOAgent(nn.Module):
         
         dist = Normal(mu, std)
         
+        if self.now > self.print_interval :
+            if not self.masking:
+                print("example mu")
+                print(mu)
+            else :
+                print("example mu (must be == guide)")
+                print(mu, guide)
+            print("example std")
+            print(std)
+            
         return dist
     
     
@@ -176,6 +188,7 @@ class PPOAgent(nn.Module):
         input: state -> Tuple[float, float]; guide -> int; train -> bool
         output: actions -> Tuple[int, int, float]; probs -> Tuple[float, float, float]
         """
+        self.now += 1
         state = torch.tensor(state)
         state = state.float()
         if not train:
@@ -189,6 +202,11 @@ class PPOAgent(nn.Module):
         a = dist.sample()
         a_int = torch.clamp(a, 0, 30).int()
         log_prob = dist.log_prob(a)
+        
+        if self.now > self.print_interval :
+            print("example action in guide", guide)
+            print(a_int)
+            self.now = 0
         
         return a_int, log_prob
 

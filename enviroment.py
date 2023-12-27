@@ -228,12 +228,15 @@ class FrameEnv():
         if not exist : 
             cap = cv2.VideoCapture(self.videoPath)
             self.FFTList = []
+            idx = 0
             while True:
+                print("video 1/1", idx)
                 ret, frame = cap.read()
                 if not ret:
                     break
                 blur = get_FFT(frame)
                 self.FFTList.append(blur)
+                idx += 1
             cap.release()
             # np.save(filePath, qTable)
             np.save("models/FFT_List_"+self.videoName+".npy", self.FFTList)

@@ -54,7 +54,8 @@ def str2bool(v) :
         return False
     else :
         raise argparse.ArgumentTypeError('Boolean value expected.')
-    
+
+
 def parse_opt(known=False) :
     parser = argparse.ArgumentParser()
     parser.add_argument("-ei", "--epsilonInit", type=int, default=1, help="epsilon init value")
@@ -71,7 +72,7 @@ def parse_opt(known=False) :
     # parser.add_argument("-vn", "--videoName", type=str, default="jetson-train", help="setting video name")
 
     parser.add_argument("-priorD", "--isDetectionexist", type=str2bool, default=True, help= "using predetected txt file?")
-    parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp/labels", help="detect file path")
+    # parser.add_argument("-drp", "--detectResultPath", type=str, default="utils/yolov5/runs/detect/exp/labels", help="detect file path")
     # parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
     
     # *** soft ***
@@ -124,10 +125,18 @@ def _main(opt, conf):
         detectResultPath = "utils/yolov5/runs/detect/exp/labels"
     elif videoName == "RoadVideo-train" :
         detectResultPath = "utils/yolov5/runs/detect/exp2/labels"
-    elif videoName == "jetson-train-new" :#TODO 
+    elif videoName == "CityRoad-train-1" :
         detectResultPath = "utils/yolov5/runs/detect/exp3/labels"
+    elif videoName == "CityRoad-train-2" :
+        detectResultPath = "utils/yolov5/runs/detect/exp4/labels"
+    elif videoName == "CityRoad-train-3" :
+        detectResultPath = "utils/yolov5/runs/detect/exp5/labels"
+    elif videoName == "MountainRoad-train-1" :
+        detectResultPath = "utils/yolov5/runs/detect/exp6/labels"
+    elif videoName == "MountainRoad-train-2" :
+        detectResultPath = "utils/yolov5/runs/detect/exp7/labels"
     else :
-        detectResultPath=opt.detectResultPath
+        print("not have video")
     
     save_name = start_time
     print_args(vars(opt))
@@ -191,8 +200,7 @@ def _main(opt, conf):
             envV.omnet.send_omnet_message("finish")
             print("sum of A(t) : ", envV.ASum, "| sum of a(t) : ", envV.aSum)
         envV.omnet.close_pipe()
-        return agentV.get_q_table()
-    
+        return start_time, conf
     
     if opt.method == "PPO" :
         rollout_len = conf["rollout_len"]
@@ -247,5 +255,7 @@ if __name__ == "__main__":
     start_time, conf = _main(opt, conf)
     print("Training Finish with...")
     print("\n- start time:\t", start_time)
+    finish_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    print("- finish time:\t", finish_time)
     print("\n- training setting:")
     prnt(conf)
