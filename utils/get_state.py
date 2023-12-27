@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
-def get_state_distriburtion(model, data, videoName) :
+def get_state_distriburtion(model, data, clusterPath) :
     labels  = model.predict(data)
     centers = model.cluster_centers_
     dfData = pd.DataFrame(data, columns=['X', 'Y'])
@@ -21,19 +21,20 @@ def get_state_distriburtion(model, data, videoName) :
     ax.set_ylabel('state : blur')
     ax.legend()
     # plt.show()
-    path = "results/cluster_"+videoName+".png"
+    video_name = clusterPath.split("/")[-1].split(".")[0]
+    path = "results/figure/"+video_name+".png"
     plt.savefig(path)
 
-def cluster_init(k=10):
-    model = KMeans(n_clusters=k, n_init=10, random_state=42)
+def cluster_init(state_num=15):
+    model = KMeans(n_clusters=state_num, n_init=10, random_state=42)
     return model
     
-def cluster_train(model, data, clusterPath, videoName, visualize=False):
+def cluster_train(model, data, clusterPath, visualize=False):
     print("start clustering for inputVideo")
     model.fit(data)
     joblib.dump(model, clusterPath)
     if visualize :
-        get_state_distriburtion(model, data, videoName)
+        get_state_distriburtion(model, data, clusterPath)
     return model
 
 

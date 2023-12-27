@@ -258,3 +258,8 @@ class PPOAgent(nn.Module):
                     self.optimization_step += 1
         
         return loss, v_loss_list, policy_loss_list
+    
+    def save_model(self, save_path) :
+        
+        torch.save(self.state_dict(), save_path)
+        return True

@@ -33,11 +33,8 @@ class ReplayBuffer():
         return len(self.buffer)
 
 
-class FrameEnv():
-    def __init__(self, videoName, videoPath, resultPath, clusterPath, data_maxlen=10000, replayBuffer_maxlen=10000, fps=30, w=5, stateNum=15, isDetectionexist=True, isClusterexist=False, isRun=False, runmode=1, masking=True, beta=1, outVideoPath="./output.mp4", isSoft=False, method="PPO"):
-        self.method = method
-        self.isDetectionexist = isDetectionexist
-        self.isClusterexist = isClusterexist
+class Environment():
+    def __init__(self, conf):
         self.beta = beta
         self.buffer = ReplayBuffer(replayBuffer_maxlen)
         self.data = collections.deque(maxlen=data_maxlen)
@@ -65,7 +62,7 @@ class FrameEnv():
             self._detect(self.isDetectionexist)
         self.w = w
         
-        if self.method == "Q-learning" :
+        if self.learn_method == "Q" :
             self.model = cluster_init(k=stateNum)
             if self.isClusterexist :  
                 print("load cluster model in init...")

@@ -156,9 +156,15 @@ class Agent():
                 print(round(self.qTable[s][a], 2), end="   ")
             print()
     
-    def get_q_table(self) :
+    def get_qtable(self) :
         return self.qTable
     
+    def save_model(self, save_path) :
+        qtable = self.get_qtable()
+        np.save(save_path, qtable)
+        
+        return True
+
     def decrease_eps(self):
         self.eps -= self.eps_decrese
         self.eps = max(self.eps, self.eps_min)

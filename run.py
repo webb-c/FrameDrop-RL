@@ -54,7 +54,7 @@ def str2bool(v) :
     
 def parge_opt(known=False) :
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
+    parser.add_argument("-f", 1"--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-w", "--window", type=int, default=30, help="importance calculate object detect range")
     parser.add_argument("-s", "--stateNum", type=int, default=15, help="clustering state Number")
     parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
