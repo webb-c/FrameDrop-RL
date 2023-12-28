@@ -25,7 +25,7 @@ import numpy as np
 from tqdm import tqdm
 from agent import Agent
 from agent_ppo import PPOAgent
-from enviroment import Environment
+from environment import Environment
 import datetime
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -58,6 +58,7 @@ def parse_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Uni
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
     parser.add_argument("-w", "--window", type=int, default=30, help="importance calculate object detect range")
     
+    #TODO 
     if args.learn_method == 'Q':
         parser.add_argument("-ei", "--02e-", type=int, default=1, help="epsilon init value")
         parser.add_argument("-ed", "--eps_dec", type=float, default=0.005, help="epsilon decrese value")
@@ -121,7 +122,7 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[str, bool, int, floa
     root_log = "./results/logs/train/"
     root_save = "./models/"
     skip_list = ['learn_method', 'pipe_num', 'fps', 'episode_num']
-    name = "start_time"
+    name = start_time
     if default_conf is None:
         for arg, value in conf.items():
             name += f"_{arg}_{value}"

@@ -34,68 +34,87 @@ pre-trained models option :
 """
 
 import numpy as np
+from pyprnt import prnt
+import datetime
+from typing import NameSpace, Tuple, Union, Dict
+from torch.utils.tensorboard import SummaryWriter
 from agent import Agent
-from enviroment import Environment
+from agent_ppo import PPOAgent
+from environment import Environment
 from utils.util import str2bool
 import argparse
 
 
-
-def parge_opt(known=False) :
+def parse_args() -> NameSpace: 
     parser = argparse.ArgumentParser()
+    
+    parser.add_argument("-v", "--video_path", type=str, default=None, help="testing video path")
     parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
-    parser.add_argument("-w", "--window", type=int, default=30, help="importance calculate object detect range")
-    parser.add_argument("-s", "--stateNum", type=int, default=15, help="clustering state Number")
-    parser.add_argument("-priorC", "--isClusterexist", type=str2bool, default=True, help="using pretrained cluster model?")
+    parser.add_argument("-model", "--model_path", type=str, default=None, help="trained model path")
+    parser.add_argument("-use", "--useage", type=str2bool, default=False, help="using RL agent?")
+    parser.add_argument("-out", "--output_path", type=str, default="./result/output.mp4", help="output video Path")
     
-    parser.add_argument("-vp", "--videoPath", type=str, default="data/jetson-test.mp4", help="training video path")
-    parser.add_argument("-vn", "--videoName", type=str, default="jetson-test", help="setting video name")
+    return parser.parse_args()
 
-    parser.add_argument("-cp", "--clusterPath", type=str, default="models/cluster_jetson-train.pkl", help="cluster model path")
-    parser.add_argument("-con", "--isContinue", type=str2bool, default=False, help="for Jetson Training")
-    parser.add_argument("-sh", "--showflowrate", type=str2bool, default=True, help="show action and flow rate")
-    
-    # *** require ***
-    parser.add_argument("-qp", "--qTablePath", type=str, default="models/q_table", help="trinaed qtable path")
-    parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
-    parser.add_argument("-m", "--masking", type=str2bool, default=True, help="using masking?")
-    parser.add_argument("-pipe", "--pipeNum", type=int, default=1, help="using pipe number")
-    parser.add_argument("-op", "--outVideoPath", type=str, default="results/skiping.mp4", help="output video Path")
-    
-    return parser.parse_known_args()[0] if known else parser.parse_args()
 
-def main(conf) :
-    envV = Environment(conf) 
-    agentV = Agent(conf, run=True)
-    done = False
-    print("Ready ...")
-    s = envV.reset()
-    frame = 0
-    aList = []
-    uList = []
-    AList = []
-    while not done:
-        print(frame)        
-        if opt.masking :
-            requireskip = opt.fps - envV.targetA
-        else :
-            requireskip = 0
-        a = agentV.get_action(s, requireskip, False)
-        AList.append(envV.targetA)
-        uList.append(a)
-        aList.append(opt.fps-a)
-        s, done = envV.step(a)
-        frame += opt.fps
-    envV.omnet.get_omnet_message()
-    envV.omnet.send_omnet_message("finish")
-    envV.omnet.close_pipe()
-    if opt.showflowrate :
-        print("a(t) :", envV.aSum, "A(t) :", envV.ASum)
+def parse_name(conf:Dict[str, Union[str, int, bool, float]]) -> Dict[str, Union[str, int, bool, float]]:
+    """모델 경로에 기록된 각종 정보를 통해 conf를 설정합니다.
+
+    Args:
+        conf (Dict[str, Union[str, int, bool, float]]): parse_args로 전달받은 기본 설정
+
+    Returns:
+        Dict[str, Union[str, int, bool, float]]: model_path parsing으로 분석한 설정이 추가된 dict
+    """
+    root_log = "./results/logs/test/"
+    pass #TODO 
+    return conf
+
+
+def main(conf:Dict[str, Union[str, int, bool, float]]) :
+    start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    conf = parse_name(conf)
+    writer = SummaryWriter(conf['log_path'])
+    
+    prnt(conf)
+    
+    if not conf['usesage'] :
+        pass #TODO 
+    else :
+        env = Environment(conf) 
+        agent = Agent(conf, run=True)
+        done = False
+        print("Ready ...")
+        s = env.reset()
+        frame = 0
+        aList = []
+        uList = []
+        AList = []
+        
+        while not done:
+            print(frame)        
+            if opt.masking :
+                requireskip = opt.fps - env.target_A
+            else :
+                requireskip = 0
+            a = agent.get_action(s, requireskip, False)
+            AList.append(env.target_A)
+            uList.append(a)
+            aList.append(opt.fps-a)
+            s, done = env.step(a)
+            frame += opt.fps
+        
+        env.omnet.get_omnet_message()
+        env.omnet.send_omnet_message("finish")
+        env.omnet.close_pipe()
+        
+        print("a(t) :", env.sum_a, "A(t) :", env.sum_A)
         print("a(t) list :", aList)
         print("A(t) list :", AList)
         print("u(t) list :", uList)
 
+
 if __name__ == "__main__":
-    opt = parge_opt()
+    opt = parse_args()
     main(opt)
     print("Inference Finish!")
