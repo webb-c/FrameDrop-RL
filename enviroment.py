@@ -60,7 +60,7 @@ class ReplayBuffer():
 class Environment():
     """강화학습 agent와 상호작용하는 environment
     """
-    def __init__(self, conf:Dict[str, Union[bool, int, float]], run:bool=False):
+    def __init__(self, conf:Dict[str, Union[str, bool, int, float]], run:bool=False):
         """init
 
         Args:

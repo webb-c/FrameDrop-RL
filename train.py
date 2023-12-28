@@ -20,7 +20,7 @@ import os
 import cv2
 import re
 from pyprnt import prnt
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, List, Dict, Union, NameSpace
 import numpy as np
 from tqdm import tqdm
 from agent import Agent
@@ -32,50 +32,52 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train, cluster_init
 from utils.util import str2bool
 from utils.cal_quality import get_FFT, get_MSE
+
 from utils.yolov5.detect import inference
 
 
-def parse_common_args() :
+def parse_common_args() -> Tuple[NameSpace, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("-v", "--video_path", type=str, default="data/RoadVideo_train.mp4", help="training video path") # using Jetson-video : "data/jetson-train.mp4"
+    parser.add_argument("-v", "--video_path", type=str, default=None, help="training video path") # using Jetson-video : "data/jetson-train.mp4"
     parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
-    parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
+    parser.add_argument("-reward", "--reward_method", type=str, default=None, help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
 
     return parser.parse_args(), parser
 
 
-def parse_args():
+def parse_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Union[str, bool, int, float]]]:
     args, parser = parse_common_args() 
     
     parser.add_argument("-episode", "--episode_num", type=int, default=500, help="number of train episode")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.05, help="setting learning rate")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
     parser.add_argument("-w", "--window", type=int, default=30, help="importance calculate object detect range")
     
     if args.learn_method == 'Q':
-        parser.add_argument("-ei", "--eps_init", type=int, default=1, help="epsilon init value")
+        parser.add_argument("-ei", "--02e-", type=int, default=1, help="epsilon init value")
         parser.add_argument("-ed", "--eps_dec", type=float, default=0.005, help="epsilon decrese value")
         parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
         parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
         parser.add_argument("-sb", "--start_buffer_size", type=int, default=1000, help="start train buffer size")
         parser.add_argument("-sampling", "--sampling_num", type=int, default=500, help="Q-learning update num")
         parser.add_argument("-buff", "--buffer_size", type=int, default=20000, help="Replay buffer size")
+        parser.add_argument("-lr", "--learning_rate", type=int, default=0.05, help="setting learning rate")
     
     elif args.learn_method == 'PPO':
         parser.add_argument("-l", "--lmbda", type=float, default=0.9, help="hyperparameter lambda for cal GAE")
         parser.add_argument("-clip", "--eps_clip", type=float, default=0.2, help="clip parameter for PPO")
-        parser.add_argument("-Kepoch", "--K_epochs", type=int, default=3, help="update policy for K Epoch")
+        parser.add_argument("-epochr", "--K_epochs", type=int, default=3, help="update policy for K Epoch")
         parser.add_argument("-rollout", "--rollout_len", type=int, default=320, help="i.e., training interval")
         parser.add_argument("-batch", "--minibatch_size", type=int, default=32, help="minibatch size")
         parser.add_argument("-s", "--state_dim", type=int, default=2, help="state vector dimension")
         parser.add_argument("-a", "--action_dim", type=int, default=30, help="number of action (range)")
         parser.add_argument("-buff", "--buffer_size", type=int, default=10, help="PPO rollout buffer size")
+        parser.add_argument("-lr", "--learning_rate", type=int, default=0.0003, help="setting learning rate")
     else:
         raise ValueError("learn_method is must be Q or PPO.")
     
@@ -86,25 +88,26 @@ def parse_args():
     return custom_args_dict, default_args_dict
 
 
-def path_manager(video_path: str) -> Tuple[str, str, str] :
+def path_manager(video_path: str, state_num: int) -> Tuple[str, str, str] :
     """ video path를 전달받아서 cluster, detection, FFT 경로를 지정하여 반환합니다.
 
     Args:
         video_path (str): 학습에 사용할 영상의 경로
-
+        state_num (int): 학습에 사용하는 cluster의 개수
+        
     Returns:
         Tuple[cluster_path, detection_path, FFT_path]
     """
     root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/", "./data/FFT/"
     video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
-    cluster_path = os.path.join(root_cluster, video_name + ".pkl")
+    cluster_path = os.path.join(root_cluster, video_name + "_" + str(state_num) + ".pkl")
     detection_path = os.path.join(root_detection, video_name + "/labels")
     FFT_path = os.path.join(root_FFT, video_name + ".npy")
     
     return cluster_path, detection_path, FFT_path
 
 
-def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union[bool, int, float]]) -> Tuple[str, str]:
+def logging_mannager(start_time: str, conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, Union[str, bool, int, float]]) -> Tuple[str, str]:
     """학습관련 argument가 기입된 conf를 전달받아 로깅, 지정에 사용할 경로를 반환합니다.
 
     Args:
@@ -117,7 +120,7 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
     """
     root_log = "./results/logs/train/"
     root_save = "./models/"
-    
+    skip_list = ['learn_method', 'pipe_num', 'fps', 'episode_num']
     name = "start_time"
     if default_conf is None:
         for arg, value in conf.items():
@@ -125,9 +128,11 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
     else:
         for arg, value in conf.items():
             default_value = default_conf.get(arg)
-            if arg == "learn_method":
+            if arg in skip_list:
                 continue
             if value != default_value:
+                if arg == 'video_path':
+                    value = re.split(r"[/\\]", value)[-1].split(".")[0]
                 name += f"_{arg}_{value}"
     
     log_path = os.path.join(root_log, name)
@@ -141,7 +146,7 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[bool, int, float]], 
     return log_path, save_path
 
 
-def verifier(conf: Dict[str, Union[bool, int, float]], cluster_path: str, detection_path: str, FFT_path: str):
+def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, detection_path: str, FFT_path: str):
     """경로를 전달받아서 데이터가 존재하는지 검증하고 없다면 만들어냅니다.
 
     Args:
@@ -192,7 +197,7 @@ def verifier(conf: Dict[str, Union[bool, int, float]], cluster_path: str, detect
 
 
 
-def main(conf: Dict[str, Union[bool, int, float]], default_conf: Dict[str, Union[bool, int, float]]) -> bool :
+def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, Union[str, bool, int, float]]) -> bool :
     """argument를 전달받아, 그 설정대로 강화학습을 수행합니다.
 
     Args:

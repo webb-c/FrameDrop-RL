@@ -13,7 +13,7 @@ INF = float("inf")
 class Agent():
     """Frame Dropping을 수행하는 강화학습 agent입니다.
     """
-    def __init__(self, conf:Dict[str, Union[bool, int, float]], run:bool):
+    def __init__(self, conf:Dict[str, Union[str, bool, int, float]], run:bool):
         """init: 학습에 필요한 초기설정
 
         Args:
