@@ -33,6 +33,8 @@ pre-trained models option :
 
 """
 
+import os
+import re
 import numpy as np
 from pyprnt import prnt
 import datetime
@@ -42,6 +44,8 @@ from agent import Agent
 from agent_ppo import PPOAgent
 from environment import Environment
 from utils.util import str2bool
+from utils.yolov5.detect import inference
+from utils.cal_F1 import get_F1
 import argparse
 
 
@@ -51,13 +55,13 @@ def parse_args() -> NameSpace:
     parser.add_argument("-v", "--video_path", type=str, default=None, help="testing video path")
     parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-model", "--model_path", type=str, default=None, help="trained model path")
-    parser.add_argument("-use", "--useage", type=str2bool, default=False, help="using RL agent?")
+    parser.add_argument("-mask", "--masking", type=str2bool, default=False, help="using lyapunov based guide?")
     parser.add_argument("-out", "--output_path", type=str, default="./result/output.mp4", help="output video Path")
     
     return parser.parse_args()
 
 
-def parse_name(conf:Dict[str, Union[str, int, bool, float]]) -> Dict[str, Union[str, int, bool, float]]:
+def parse_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str) -> Dict[str, Union[str, int, bool, float]]:
     """모델 경로에 기록된 각종 정보를 통해 conf를 설정합니다.
 
     Args:
@@ -71,50 +75,79 @@ def parse_name(conf:Dict[str, Union[str, int, bool, float]]) -> Dict[str, Union[
     return conf
 
 
-def main(conf:Dict[str, Union[str, int, bool, float]]) :
+def test(conf):
+    env = Environment(conf) 
+    agent = Agent(conf, run=True)
+    done = False
+    print("Ready ...")
+    s = env.reset()
+    frame = 0
+    aList = []
+    uList = []
+    AList = []
+    
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    while not done:
+        print(frame)        
+        if opt.masking :
+            requireskip = opt.fps - env.target_A
+        else :
+            requireskip = 0
+        a = agent.get_action(s, requireskip, False)
+        AList.append(env.target_A)
+        uList.append(a)
+        aList.append(opt.fps-a)
+        s, done = env.step(a)
+        frame += opt.fps
+    
+    env.omnet.get_omnet_message()
+    env.omnet.send_omnet_message("finish")
+    env.omnet.close_pipe()
+    
+    finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    
+    print("a(t) :", env.sum_a, "A(t) :", env.sum_A)
+    print("a(t) list :", aList)
+    print("A(t) list :", AList)
+    print("u(t) list :", uList)
+    
+    print("Testomg Finish with...")
+    prnt(conf)
+    print("\n✱ start time :\t", start_time)
+    print("✱ finish time:\t", finish_time)
+    
+
+
+def main(conf:Dict[str, Union[str, int, bool, float]]) :
     conf = parse_name(conf)
     writer = SummaryWriter(conf['log_path'])
-    
     prnt(conf)
     
-    if not conf['usesage'] :
-        pass #TODO 
-    else :
-        env = Environment(conf) 
-        agent = Agent(conf, run=True)
-        done = False
-        print("Ready ...")
-        s = env.reset()
-        frame = 0
-        aList = []
-        uList = []
-        AList = []
-        
-        while not done:
-            print(frame)        
-            if opt.masking :
-                requireskip = opt.fps - env.target_A
-            else :
-                requireskip = 0
-            a = agent.get_action(s, requireskip, False)
-            AList.append(env.target_A)
-            uList.append(a)
-            aList.append(opt.fps-a)
-            s, done = env.step(a)
-            frame += opt.fps
-        
-        env.omnet.get_omnet_message()
-        env.omnet.send_omnet_message("finish")
-        env.omnet.close_pipe()
-        
-        print("a(t) :", env.sum_a, "A(t) :", env.sum_A)
-        print("a(t) list :", aList)
-        print("A(t) list :", AList)
-        print("u(t) list :", uList)
+    test(conf)
+
+    print("===== cheking F1 score =====")
+    root_detection =  "./data/detect/test/"
+    video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
+    model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
+    if not os.path.exists(conf['detection_path']): #TODO 
+        command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
+        inference(command)
+    
+    command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name+"_"+model_name, "--save-txt", "--save-conf", "--nosave"]
+    inference(command)
+    
+    origin_file = os.path.join(root_detection, video_name)
+    skipped_file = os.path.join(root_detection, video_name+"_"+model_name)
+    
+    F1_score = get_F1(origin_file, skipped_file) #TODO 
+    
+    print("✲ F1 score: ")
 
 
 if __name__ == "__main__":
     opt = parse_args()
-    main(opt)
-    print("Inference Finish!")
+    conf = dict(**opt.__dict__)
+    ret = main(conf)
+    
+    if not ret:
+        print("Testing ended abnormally.")
