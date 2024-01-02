@@ -45,7 +45,7 @@ def parse_common_args() :
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
-    parser.add_argument("-reward", "--reward_method", type=str, default=None, help="using reward function")
+    parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
 
     args, unknown = parser.parse_known_args()

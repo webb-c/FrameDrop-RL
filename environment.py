@@ -266,7 +266,6 @@ class Environment():
         self.prev_A = self.target_A
         self.target_A = new_A
         
-        self.data.append(self.origin_state)
         # new state
         if self.run :
             self.all_processed_frame_list += self.processed_frame_list
@@ -283,7 +282,7 @@ class Environment():
         # reward
         if not self.run :
             r = self.__reward_function()
-        self.buffer.put(self.trans_list)
+        self.buffer.put_data(self.trans_list)
         self.trans_list = []
         
         return r
