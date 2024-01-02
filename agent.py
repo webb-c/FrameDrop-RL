@@ -21,16 +21,16 @@ class Agent():
             run (bool): testing을 수행하는가?
         """
         self.eps_init, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
-        self.lr, self.gamma = conf['learing_rate'], conf['gamma']
+        self.lr, self.gamma = conf['learning_rate'], conf['gamma']
         self.state_num = conf['state_num']
         self.fps = conf['fps']
-        self.masking = conf['masking']
-        if conf['continue'] or conf['run'] : 
+        self.masking = conf['is_masking']
+        self.run = run
+        if conf['is_continue'] or self.run : 
             self.qtable = self.__load_model(conf['qtable_path'])
         else :
             self.qtable = np.zeros((self.state_num, self.fps+1))  # s, a
         self.action_dim = list(range(self.fps+1))  # 0 to fps
-        self.run = run
         self.isFirst = True
 
 

@@ -82,17 +82,17 @@ class Environment():
         else :
             self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000)
         # hyper parameter setting
-        self.beta, self.w = conf['beta'], conf['w']
+        self.beta, self.w = conf['beta'], conf['window']
         # data load
         self.video_path = conf['video_path']
         self.fps = conf['fps']
         if not self.run :
-            self.__detect()
+            self.__detect(conf['cluster_path'], conf['detection_path'], conf['FFT_path'])
         if self.learn_method == "Q" :
             self.model = cluster_init(conf['state_num'])
             print("load cluster model in init...")
             self.model = cluster_load(conf['cluster_path'])
-        
+        self.sum_A = 0
         self.reset()
         # run
         if self.run :
@@ -388,5 +388,5 @@ class Communicator(Exception):
             return -1
 
         win32pipe.ConnectNamedPipe(pipe, None)
-
+        print("finshing connect OMNeT++")
         return pipe

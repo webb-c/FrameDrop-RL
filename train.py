@@ -20,7 +20,7 @@ import os
 import cv2
 import re
 from pyprnt import prnt
-from typing import Tuple, List, Dict, Union, NameSpace
+from typing import Tuple, List, Dict, Union
 import numpy as np
 from tqdm import tqdm
 from agent import Agent
@@ -36,7 +36,7 @@ from utils.cal_quality import get_FFT, get_MSE
 from utils.yolov5.detect import inference
 
 
-def parse_common_args() -> Tuple[NameSpace, argparse.ArgumentParser]:
+def parse_common_args() :
     parser = argparse.ArgumentParser()
     
     parser.add_argument("-v", "--video_path", type=str, default=None, help="training video path") # using Jetson-video : "data/jetson-train.mp4"
@@ -48,7 +48,8 @@ def parse_common_args() -> Tuple[NameSpace, argparse.ArgumentParser]:
     parser.add_argument("-reward", "--reward_method", type=str, default=None, help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
 
-    return parser.parse_args(), parser
+    args, unknown = parser.parse_known_args()
+    return args, parser
 
 
 def parse_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Union[str, bool, int, float]]]:
@@ -60,7 +61,7 @@ def parse_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Uni
     
     #TODO 
     if args.learn_method == 'Q':
-        parser.add_argument("-ei", "--02e-", type=int, default=1, help="epsilon init value")
+        parser.add_argument("-ei", "--eps_init", type=int, default=1, help="epsilon init value")
         parser.add_argument("-ed", "--eps_dec", type=float, default=0.005, help="epsilon decrese value")
         parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
         parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
@@ -134,6 +135,9 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[str, bool, int, floa
             if value != default_value:
                 if arg == 'video_path':
                     value = re.split(r"[/\\]", value)[-1].split(".")[0]
+                arg = arg.replace("_", "")
+                if isinstance(value, str):
+                    value = value.replace("_", "")
                 name += f"_{arg}_{value}"
     
     log_path = os.path.join(root_log, name)
@@ -158,12 +162,15 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
     """
     
     if not os.path.exists(detection_path):
+        print("start making detection files ...")
         root_detection =  "./data/detect/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
         command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
         inference(command)
+        print("finish making detection files !\n")
     
     if not os.path.exists(FFT_path):
+        print("start making blur level file ...")
         cap = cv2.VideoCapture(conf['video_path'])
         FFTList = []
         idx = 0
@@ -177,8 +184,10 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
             idx += 1
         cap.release()
         np.save(FFT_path, FFTList)
+        print("finish making blur level file !\n")
     
     if not os.path.exists(cluster_path):
+        print("start making cluster model ...")
         cluster = cluster_init(state_num=conf['state_num'])
         FFTList = np.load(FFT_path)
         data = []
@@ -195,7 +204,7 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
             data.append([get_MSE(f_prev, f_cur), FFTList[idx]])
             f_prev = f_cur            
         cluster = cluster_train(cluster, np.array(data), cluster_path)
-
+        print("finish making cluster model !\n")
 
 
 def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, Union[str, bool, int, float]]) -> bool :
@@ -209,25 +218,29 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
         bool: 정상적으로 학습이 종료되면 True를 반환합니다.
     """
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S") 
-    cluster_path, detection_path, FFT_path = path_manager(conf['video_path'])
+    cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'])
     verifier(conf, cluster_path, detection_path, FFT_path)
     log_path, save_path = logging_mannager(start_time, conf, default_conf)
     writer = SummaryWriter(log_path)
+    conf['cluster_path'] = cluster_path
+    conf['detection_path'] = detection_path
+    conf['FFT_path'] = FFT_path
     prnt(conf)
     
     env = Environment(conf)
     
-    if conf['learn_metho'] == "Q" :
-        agent = Agent(conf)
+    if conf['learn_method'] == "Q" :
+        agent = Agent(conf, run=False)
         rand = True
+        print("train start !")
         for epi in tqdm(range(conf['episode_num'])):       
             done = False
-            showLog = False
+            show_log = False
             if epi == 0 or (epi % 50) == 0 or epi == conf['episode_num']-1 :
-                showLog = True
-            s = env.reset(showLog=showLog)
+                show_log = True
+            s = env.reset(show_log=show_log)
             while not done:
-                require_skip = conf['fps'] - env.targetA
+                require_skip = conf['fps'] - env.target_A
                 a = agent.get_action(s, require_skip, rand)
                 s, _, done = env.step(a)
             if env.buffer.get_size() < conf['start_buffer_size']:
@@ -240,10 +253,10 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                 agent.decrease_eps()
             # logging
             writer.add_scalar("Reward/"+conf['reward_method'], env.reward_sum, epi)
-            writer.add_scalar("Network/Diff", (env.ASum - env.aSum), epi)
-            writer.add_scalar("Network/target_A(t)", env.ASum, epi)
-            writer.add_scalar("Network/send_a(t)", env.aSum, epi)
-            print("sum of A(t) : ", env.ASum, "| sum of a(t) : ", env.aSum)
+            writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), epi)
+            writer.add_scalar("Network/target_A(t)", env.sum_A, epi)
+            writer.add_scalar("Network/send_a(t)", env.sum_a, epi)
+            print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
             if epi == 0 or (epi % 50) == 0 or epi == conf["episode_num"]-1 :
                 agent.show_qtable()
                 env.show_trans()
@@ -257,11 +270,11 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
         print_interval = 50
         for episode in tqdm(range(conf['episode_num'])):
             epi_reward = 0
-            state = env.reset(showLog=True)
+            state = env.reset(show_log=True)
             done = False
             while not done :
                 for t in range(conf['rollout_len']):
-                    guide = conf['fps'] - env.targetA
+                    guide = conf['fps'] - env.target_A
                     action, action_prob = agent.get_actions(state, guide)
                     # print(action)
                     action = action.item()
@@ -275,11 +288,11 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             total_reward += epi_reward
             
             # record total_reward & avg_reward & loss for each episode
-            print("sum of A(t) : ", env.ASum, "| sum of a(t) : ", env.aSum)
+            print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
             writer.add_scalar("Reward/"+conf['reward_method'], epi_reward, episode)
-            writer.add_scalar("Network/Diff", (env.ASum - env.aSum), episode)
-            writer.add_scalar("Network/target_A(t)", env.ASum, episode)
-            writer.add_scalar("Network/send_a(t)", env.aSum, episode)
+            writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), episode)
+            writer.add_scalar("Network/target_A(t)", env.sum_A, episode)
+            writer.add_scalar("Network/send_a(t)", env.sum_a, episode)
             if loss is not None :
                 writer.add_scalar("loss", loss.mean().item(), episode)
                 writer.add_scalar("value_loss", sum(value_loss).mean().item(), episode)
