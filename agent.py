@@ -20,7 +20,7 @@ class Agent():
             conf (Dict[str, Union[bool, int, float]]): train/testing setting
             run (bool): testing을 수행하는가?
         """
-        self.eps_init, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
+        self.eps, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
         self.lr, self.gamma = conf['learning_rate'], conf['gamma']
         self.state_num = conf['state_num']
         self.fps = conf['fps']

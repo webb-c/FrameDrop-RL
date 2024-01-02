@@ -12,3 +12,6 @@ models/*
 results/*
 !results/cluster_jetson-train.png
 !results/cluster_RoadVideo-train.png
+
+
+.vscode/
