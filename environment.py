@@ -78,6 +78,8 @@ class VideoProcessor():
     
     
     def reset(self):
+        """학습에 반복적으로 사용하기 위해 videocapture를 초기화한다.
+        """
         self.cap.release()
         self.cap = cv2.VideoCapture(self.video_path)
         self.all_frames, self.processed_frames = [], []
@@ -86,7 +88,15 @@ class VideoProcessor():
         self.idx = 0
     
     
-    def read_video(self, skip):
+    def read_video(self, skip:int) -> bool:
+        """주어진 skip길이만큼 skip한 뒤, 나머지 영상은 저장한다.
+
+        Args:
+            skip (int): skip하는 프레임의 개수 [0, fps]
+
+        Returns:
+            bool: 영상이 끝났는가?
+        """
         skip_frame = np.zeros_like(self.cur_frame)
         for _ in range(skip):
             self.all_frames.append(self.cur_frame)
@@ -113,6 +123,11 @@ class VideoProcessor():
 
 
     def write_video(self) -> bool:
+        """저장한 processed_frame들을 사용하여 영상으로 내보낸다.
+
+        Returns:
+            bool: 영상 저장이 성공적으로 이루어졌는가?
+        """
         frame_shape = self.processed_frames[0].shape[:2]
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0]))
@@ -128,7 +143,12 @@ class VideoProcessor():
             return False
     
     
-    def get_frame(self):
+    def get_frame(self) -> Tuple[np.array, np.array, int]:
+        """현재 frame과 이전 frame, 그리고 현재 frame의 idx를 반환한다.
+
+        Returns:
+            Tuple[prev_frame, cur_frame, idx]:
+        """
         return self.prev_frame, self.cur_frame, self.idx
 
 
