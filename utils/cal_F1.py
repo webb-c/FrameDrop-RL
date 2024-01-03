@@ -1,3 +1,4 @@
+import os
 """
 for calculate F1 score;
 using ref_frame comparison with skip_frame
@@ -37,8 +38,10 @@ def _cal_F1(filePred, skipFilePred, threshold=0.5) :  # pred, labels
             FP += 1
     
     FN = len(skipFilePred) - TP
-    precision = TP / (TP+FP)
-    recall = TP /  (TP+FN)
+    if TP + FP == 0: precision = 0
+    else: precision = TP / (TP+FP)
+    if TP + FN == 0: recall = 0
+    else: recall = TP /  (TP+FN)
     F1 = 2*(precision*recall) / (precision+recall) if (precision+recall) != 0 else 0
     return F1
 

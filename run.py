@@ -101,26 +101,39 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     
     test(conf, start_time, writer)
 
-    """
+    
     if conf['f1_score'] :
-        print("===== cheking F1 score =====")
+        print("\n===== cheking F1 score =====")
         root_detection =  "./data/detect/test/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
         model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
-        if not os.path.exists(conf['detection_path']): #TODO 
+        
+        origin_detection_path = os.path.join(root_detection, video_name + "/labels")
+        if not os.path.exists(origin_detection_path):
             command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
             inference(command)
         
-        command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name+"_"+model_name, "--save-txt", "--save-conf", "--nosave"]
-        inference(command)
+        skip_detection_path = os.path.join(root_detection, video_name+"_"+model_name + "/labels")
+        if not os.path.exists(skip_detection_path):
+            command = ["--weights", "models/yolov5s6.pt", "--source", conf['output_path'], "--project", root_detection, "--name", video_name+"_"+model_name, "--save-txt", "--save-conf", "--nosave"]
+            inference(command)
         
-        origin_file = os.path.join(root_detection, video_name)
-        skipped_file = os.path.join(root_detection, video_name+"_"+model_name)
+        origin_list = os.listdir(origin_detection_path)
+        skip_list = os.listdir(skip_detection_path)
+        num_file = len(origin_list)
+        total_F1 = 0
+        for i in range(num_file):
+            origin, skip = origin_list[i], skip_list[i]
+            origin_file = os.path.join(origin_detection_path, origin)
+            skip_file = os.path.join(skip_detection_path, skip)
+            F1_score = get_F1(origin_file, skip_file)
+            total_F1 += F1_score
         
-        F1_score = get_F1(origin_file, skipped_file) #TODO 
+        writer.add_scalar("F1_score/total", total_F1, 1)
+        writer.add_scalar("F1_score/average", total_F1/len(origin_list), 1)
+        print("✲ total F1 score: ", total_F1)
+        print("✲ average F1 score: ", total_F1/len(origin_list))
         
-        print("✲ F1 score: ")
-    """
     return True
 
 
