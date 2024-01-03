@@ -169,9 +169,9 @@ class Environment():
             self.reset(): Env reset
         """
         self.run = run
+        self.fps = conf['fps']
         self.learn_method = conf['learn_method']
 
-        self.buffer = ReplayBuffer(conf['buffer_size'])
         if conf['pipe_num'] == 1:
             self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
         else :
@@ -181,10 +181,8 @@ class Environment():
             self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'])
         else:
             self.video_processor = VideoProcessor(conf['video_path'], conf['fps'])
-        
-        self.beta, self.w, self.fps = conf['beta'], conf['window'], conf['fps']
-        
-        if not self.run :
+            self.buffer = ReplayBuffer(conf['buffer_size'])
+            self.beta = conf['beta']
             self.__detect(conf['detection_path'], conf['FFT_path'])
         
         if self.learn_method == "Q" :
@@ -215,7 +213,7 @@ class Environment():
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
         
         if self.run :
-            self.origin_state = [0, get_FFT(self.frame)]
+            self.origin_state = [0, get_FFT(self.cur_frame)]
         else :
             self.origin_state = [0, self.FFT_list[self.idx]]
         
@@ -329,7 +327,7 @@ class Environment():
         self.target_A = new_A
         
         if self.run :
-            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.frame)]
+            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame)]
         else :
             self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
     
@@ -342,7 +340,7 @@ class Environment():
         
         if not self.run :
             r = self.__reward_function()
-        self.buffer.put_data(self.trans_list)
+            self.buffer.put_data(self.trans_list)
         self.trans_list = []
         
         return r

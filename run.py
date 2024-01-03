@@ -38,68 +38,39 @@ import re
 import numpy as np
 from pyprnt import prnt
 import datetime
-from typing import NameSpace, Tuple, Union, Dict
+from typing import Tuple, Union, Dict
 from torch.utils.tensorboard import SummaryWriter
 from agent import Agent
 from agent_ppo import PPOAgent
 from environment import Environment
-from utils.util import str2bool
+from utils.parser import parse_test_args, parse_test_name, add_args
 from utils.yolov5.detect import inference
 from utils.cal_F1 import get_F1
-import argparse
 
 
-def parse_args() -> NameSpace: 
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument("-v", "--video_path", type=str, default=None, help="testing video path")
-    parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
-    parser.add_argument("-model", "--model_path", type=str, default=None, help="trained model path")
-    parser.add_argument("-mask", "--masking", type=str2bool, default=False, help="using lyapunov based guide?")
-    parser.add_argument("-out", "--output_path", type=str, default="./result/output.mp4", help="output video Path")
-    parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
-    
-    return parser.parse_args()
-
-
-def parse_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str) -> Dict[str, Union[str, int, bool, float]]:
-    """모델 경로에 기록된 각종 정보를 통해 conf를 설정합니다.
-
-    Args:
-        conf (Dict[str, Union[str, int, bool, float]]): parse_args로 전달받은 기본 설정
-
-    Returns:
-        Dict[str, Union[str, int, bool, float]]: model_path parsing으로 분석한 설정이 추가된 dict
-    """
-    root_log = "./results/logs/test/"
-    pass #TODO 
-    return conf
-
-
-def test(conf):
-    env = Environment(conf) 
+def test(conf, start_time, writer):
+    env = Environment(conf, run=True) 
     agent = Agent(conf, run=True)
     done = False
     print("Ready ...")
     s = env.reset()
-    frame = 0
-    aList = []
-    uList = []
-    AList = []
+    a_list, u_list, A_list = [], [], []
     
-    start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
-    while not done:
-        print(frame)        
-        if opt.masking :
-            requireskip = opt.fps - env.target_A
+    step = 0
+    while not done:       
+        if conf['is_masking'] :
+            require_skip = conf['fps'] - env.target_A
         else :
-            requireskip = 0
-        a = agent.get_action(s, requireskip, False)
-        AList.append(env.target_A)
-        uList.append(a)
-        aList.append(opt.fps-a)
-        s, done = env.step(a)
-        frame += opt.fps
+            require_skip = 0
+        a = agent.get_action(s, require_skip, False)
+        A_list.append(env.target_A)
+        u_list.append(a)
+        a_list.append(conf['fps']-a)
+        writer.add_scalar("Network/Diff", (env.target_A - (conf['fps']-a)), step)
+        writer.add_scalar("Network/target_A(t)", env.target_A, step)
+        writer.add_scalar("Network/send_a(t)", conf['fps']-a, step)
+        s, _, done = env.step(a)
+        step += 1
     
     env.omnet.get_omnet_message()
     env.omnet.send_omnet_message("finish")
@@ -108,46 +79,53 @@ def test(conf):
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
     
     print("a(t) :", env.sum_a, "A(t) :", env.sum_A)
-    print("a(t) list :", aList)
-    print("A(t) list :", AList)
-    print("u(t) list :", uList)
-    
+    if conf['log_network']:
+        print("a(t) list :", a_list)
+        print("A(t) list :", A_list)
+        print("u(t) list :", u_list)
+
+
     print("Testing Finish with...")
-    prnt(conf)
+    prnt(conf) 
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
     
 
 
-def main(conf:Dict[str, Union[str, int, bool, float]]) :
-    conf = parse_name(conf)
-    writer = SummaryWriter(conf['log_path'])
+def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
+    start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    conf, log_path = parse_test_name(conf, start_time)
+    writer = SummaryWriter(log_path)
     prnt(conf)
+    conf = add_args(conf)
     
-    test(conf)
+    test(conf, start_time, writer)
 
-    print("===== cheking F1 score =====")
-    root_detection =  "./data/detect/test/"
-    video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
-    model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
-    if not os.path.exists(conf['detection_path']): #TODO 
-        command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
+    """
+    if conf['f1_score'] :
+        print("===== cheking F1 score =====")
+        root_detection =  "./data/detect/test/"
+        video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
+        model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
+        if not os.path.exists(conf['detection_path']): #TODO 
+            command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
+            inference(command)
+        
+        command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name+"_"+model_name, "--save-txt", "--save-conf", "--nosave"]
         inference(command)
-    
-    command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name+"_"+model_name, "--save-txt", "--save-conf", "--nosave"]
-    inference(command)
-    
-    origin_file = os.path.join(root_detection, video_name)
-    skipped_file = os.path.join(root_detection, video_name+"_"+model_name)
-    
-    F1_score = get_F1(origin_file, skipped_file) #TODO 
-    
-    print("✲ F1 score: ")
-    # drop한 프레임도 파일 생기게 그냥 0으로 된 프레임 만들어서 줘야될듯?
+        
+        origin_file = os.path.join(root_detection, video_name)
+        skipped_file = os.path.join(root_detection, video_name+"_"+model_name)
+        
+        F1_score = get_F1(origin_file, skipped_file) #TODO 
+        
+        print("✲ F1 score: ")
+    """
+    return True
 
 
 if __name__ == "__main__":
-    opt = parse_args()
+    opt = parse_test_args()
     conf = dict(**opt.__dict__)
     ret = main(conf)
     

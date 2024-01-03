@@ -20,14 +20,17 @@ class Agent():
             conf (Dict[str, Union[bool, int, float]]): train/testing setting
             run (bool): testing을 수행하는가?
         """
-        self.eps, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
-        self.lr, self.gamma = conf['learning_rate'], conf['gamma']
         self.state_num = conf['state_num']
         self.fps = conf['fps']
         self.masking = conf['is_masking']
         self.run = run
+        
+        if not self.run: 
+            self.eps, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
+            self.lr, self.gamma = conf['learning_rate'], conf['gamma']
+        
         if conf['is_continue'] or self.run : 
-            self.qtable = self.__load_model(conf['qtable_path'])
+            self.qtable = self.__load_model(conf['model_path'])
         else :
             self.qtable = np.zeros((self.state_num, self.fps+1))  # s, a
         self.action_dim = list(range(self.fps+1))  # 0 to fps
@@ -148,6 +151,3 @@ class Agent():
             for a in range(self.fps+1) :
                 print(round(self.qtable[s][a], 2), end="   ")
             print()
-
-
-        
