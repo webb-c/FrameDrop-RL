@@ -57,6 +57,81 @@ class ReplayBuffer():
         return len(self.buffer)
 
 
+class VideoProcessor():
+    """영상을 프레임단위로 읽어들이거나 내보내기 위한 관리자
+    """
+    def __init__(self, video_path: str, fps: int, output_path: str=None, f1_score: bool=True) :
+        """init
+        
+        Args:
+            video_path: 학습/테스트에 사용할 영상의 경로
+            fps: 영상의 fps
+            output_path: 테스트시 skip한 영상을 내보낼 경로
+            f1_score: f1_score 테스트를 위한 영상인가?
+        """
+        self.video_path = video_path
+        self.output_path = output_path
+        self.fps = fps
+        self.f1_score = f1_score
+        self.cap = cv2.VideoCapture(self.video_path)
+        self.all_frames, self.processed_frames = [], []
+    
+    
+    def reset(self):
+        self.cap.release()
+        self.cap = cv2.VideoCapture(self.video_path)
+        self.all_frames, self.processed_frames = [], []
+        _, f_init = self.cap.read()
+        self.prev_frame, self.cur_frame = f_init, f_init
+        self.idx = 0
+    
+    
+    def read_video(self, skip):
+        skip_frame = np.zeros_like(self.cur_frame)
+        for _ in range(skip):
+            self.all_frames.append(self.cur_frame)
+            if self.f1_score:
+                self.processed_frames.append(skip_frame)
+
+            self.prev_frame = self.cur_frame
+            ret, self.cur_frame = self.cap.read()
+            self.idx += 1
+            if not ret:
+                return False
+        
+        for _ in range(self.fps - skip):
+            self.all_frames.append(self.cur_frame)
+            self.processed_frames.append(self.cur_frame)
+            
+            self.prev_frame = self.cur_frame
+            ret, self.cur_frame = self.cap.read()
+            self.idx += 1
+            if not ret:
+                return False
+
+        return True
+
+
+    def write_video(self) -> bool:
+        frame_shape = self.processed_frames[0].shape[:2]
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0]))
+
+        for frame in self.processed_frames:
+            out.write(frame)
+
+        out.release()
+        
+        if os.path.exists(self.output_path):
+            return True
+        else:        
+            return False
+    
+    
+    def get_frame(self):
+        return self.prev_frame, self.cur_frame, self.idx
+
+
 class Environment():
     """강화학습 agent와 상호작용하는 environment
     """
@@ -75,32 +150,30 @@ class Environment():
         """
         self.run = run
         self.learn_method = conf['learn_method']
-        # instance define
+
         self.buffer = ReplayBuffer(conf['buffer_size'])
         if conf['pipe_num'] == 1:
             self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
         else :
             self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000)
-        # hyper parameter setting
-        self.beta, self.w = conf['beta'], conf['window']
-        # data load
-        self.video_path = conf['video_path']
-        self.fps = conf['fps']
+        
+        if self.run:
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'])
+        else:
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'])
+        
+        self.beta, self.w, self.fps = conf['beta'], conf['window'], conf['fps']
+        
         if not self.run :
-            self.__detect(conf['cluster_path'], conf['detection_path'], conf['FFT_path'])
+            self.__detect(conf['detection_path'], conf['FFT_path'])
+        
         if self.learn_method == "Q" :
             self.model = cluster_init(conf['state_num'])
             print("load cluster model in init...")
             self.model = cluster_load(conf['cluster_path'])
-        self.sum_A = 0
+        
         self.reset()
-        # run
-        if self.run :
-            self.all_processed_frame_list = []
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            self.output_path = conf['output_path']
-            self.out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (self.frame.shape[1], self.frame.shape[0]))
-    
+
     
     def reset(self, show_log:bool=False) -> Union[int, List[float]]:
         """Env reset: Arrival data, reward, idx, frame_reader, state 초기화 
@@ -115,29 +188,22 @@ class Environment():
             utils.cal_quality.get_FFT(): run 모드일 때 FFT 계산을 위해 사용한다.
             utils.get_state.cluster_pred: train, Q-learning에서 state를 구하기 위해 사용한다.
         """
-        # idx init
-        if self.sum_A != 0 :
-            self.cap.release()
-        self.reward_sum, self.skip_time, self.sum_A, self.sum_a, self.cur_idx, self.cap_idx = 0, 0, 0, 0, 0, 0
+        self.video_processor.reset()
+        self.reward_sum, self.sum_A, self.sum_a = 0, 0, 0
         self.show_log = show_log
-        self.cap = cv2.VideoCapture(self.video_path)
         self.prev_A, self.target_A = self.fps, self.fps
-        # frame/state init
-        _, f1 = self.cap.read()
-        self.frame_list = [f1]
-        self.processed_frame_list = []
-        self.prev_frame = f1
-        self.frame = f1
+        self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
+        
         if self.run :
             self.origin_state = [0, get_FFT(self.frame)]
         else :
-            self.origin_state = [0, self.FFT_list[self.cur_idx]]
+            self.origin_state = [0, self.FFT_list[self.idx]]
         
         if self.learn_method == "Q" :
             self.state = cluster_pred(self.origin_state, self.model)
         elif self.learn_method == "PPO" :
             self.state = self.origin_state
-        # transition init
+        
         self.trans_list = []
         if self.show_log :   
             self.logList = []
@@ -145,11 +211,10 @@ class Environment():
         return self.state
 
 
-    def __detect(self, cluster_path: str, detection_path: str, FFT_path: str):
+    def __detect(self, detection_path: str, FFT_path: str):
         """학습에 사용하는 영상에 해당되는 사전처리된 데이터 로드
 
         Args:
-            cluster_path (str): 검증된 cluster_path
             detection_path (str): 검증된 detection_path 경로
             FFT_path (str): 검증된 cluster_path
         """
@@ -177,66 +242,44 @@ class Environment():
             self.Communicator.get/sent_omnet_message: omnet 통신
             __triggered_by_guideL Lyapunov based guide가 새로 들어왔을 때 변수 갱신, 리워드 계산을 위해 호출
         """
-        # skipping
-        if action == 0 : 
-            self.omnet.get_omnet_message()
-            self.omnet.send_omnet_message("action")
-            self.omnet.get_omnet_message()
-            self.omnet.send_omnet_message(str((self.skip_time+1)/self.fps))
-            self.processed_frame_list.append(self.frame)
-            self.skip_time = 0
-        if action == self.fps :
-            self.skip_time += self.fps
+        done = False
+        ret = self.video_processor.read_video(skip=action)
+        if not ret:
+            done = True
+            r = 0
+            if self.run:
+                create = self.video_processor.write_video()
+                if create:
+                    print("Writing the video has successfully concluded.")
+                else:
+                    print("Writing the video ended abnormally.")
         
-        for a in range(1, self.fps):
-            self.cap_idx += 1
-            ret, temp = self.cap.read()
-            if not ret:
-                self.cap.release()
-                if self.run :
-                    self.all_processed_frame_list += self.processed_frame_list
-                    for frame in self.all_processed_frame_list :
-                        self.out.write(frame)
-                    self.out.release()
-                return -1, 0, True
-            
-            self.frame_list.append(temp)
+        for a in range(self.fps+1):
             if a == action :
-                self.processed_frame_list.append(temp)
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("action")
                 self.omnet.get_omnet_message()
-                send_action = (self.skip_time+action+1)/self.fps
-                self.omnet.send_omnet_message(str(send_action))
-                self.skip_time = 0
+                self.omnet.send_omnet_message(str((action+1)/self.fps))
             elif a > action : 
-                self.processed_frame_list.append(temp)
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message("action")
                 self.omnet.get_omnet_message()
                 self.omnet.send_omnet_message(str((1)/self.fps))
         
-        self.prev_frame = self.frame_list[-1]
-        ret, self.frame = self.cap.read()
-        self.cap_idx += 1
-        if not ret:
-            self.cap.release()
-            if self.run :
-                for frame in self.all_processed_frame_list :
-                    self.out.write(frame)
-                self.out.release()
+        if ret:
+            self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
             
-            return -1, 0, True
+            self.omnet.get_omnet_message()
+            self.omnet.send_omnet_message("reward") 
+            ratio_A = float(self.omnet.get_omnet_message())
+            self.omnet.send_omnet_message("ACK")
+            
+            new_A = math.floor(ratio_A*(self.fps))
+            r = self.__triggered_by_guide(new_A, action)
+
         
-        self.omnet.get_omnet_message()
-        self.omnet.send_omnet_message("reward") 
-        ratio_A = float(self.omnet.get_omnet_message())
-        self.omnet.send_omnet_message("ACK")
         
-        new_A = math.floor(ratio_A*(self.fps))
-        r = self.__triggered_by_guide(new_A, action)
-        
-        return self.state, r, False
+        return self.state, r, done
 
 
     def __triggered_by_guide(self, new_A:int, action:int) -> float:
@@ -255,23 +298,20 @@ class Environment():
             self.__reward_function: reward 계산
             
         """
+        r = 0
         self.send_A = self.fps - action
         self.sum_a += self.send_A
         self.sum_A += self.target_A
         self.trans_list.append(self.fps-self.target_A)
         self.trans_list.append(self.state)
         self.trans_list.append(action)
-        self.frame_list = [self.frame]
-        self.processed_frame_list = [self.frame]
         self.prev_A = self.target_A
         self.target_A = new_A
         
-        # new state
         if self.run :
-            self.all_processed_frame_list += self.processed_frame_list
-            self.origin_state = [get_MSE(self.prev_frame, self.frame), get_FFT(self.frame)]
+            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.frame)]
         else :
-            self.origin_state = [get_MSE(self.prev_frame, self.frame), self.FFT_list[self.cur_idx+self.fps]]
+            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
     
         if self.learn_method == "Q" :
             self.state = cluster_pred(self.origin_state, self.model)
@@ -279,7 +319,7 @@ class Environment():
             self.state = self.origin_state
         
         self.trans_list.append(self.state)
-        # reward
+        
         if not self.run :
             r = self.__reward_function()
         self.buffer.put_data(self.trans_list)
@@ -294,12 +334,13 @@ class Environment():
         Returns: List[important_score]
         """
         # get importance
+        std_idx = self.idx - self.fps
         important_list = []
         imp_max = 1
         imp_min = -1 * self.beta
-        max_num = max(self.obj_num_list[self.cur_idx : self.cur_idx+self.fps+1])
+        max_num = max(self.obj_num_list[std_idx : self.idx+1])
         for f in range(self.fps) :
-            importance = (self.obj_num_list[self.cur_idx+f] / max_num) if max_num != 0 else 0
+            importance = (self.obj_num_list[std_idx+f] / max_num) if max_num != 0 else 0
             normalized_importance = (imp_max - imp_min)*(importance) + imp_min
             important_list.append(normalized_importance)
         
@@ -327,10 +368,10 @@ class Environment():
         r = (sum(important_list[a+1:])/plusdiv) - (sum(important_list[:a+1])/minusdiv) 
         
         self.trans_list.append(r)
-        self.cur_idx += self.fps
         self.reward_sum += r
         if self.show_log :
             self.logList.append("A(t): "+str(self.prev_A)+" action: "+str(a)+" A(t+1): "+str(self.target_A)+" reward: "+str(r))
+        
         return r
 
 

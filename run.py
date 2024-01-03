@@ -57,6 +57,7 @@ def parse_args() -> NameSpace:
     parser.add_argument("-model", "--model_path", type=str, default=None, help="trained model path")
     parser.add_argument("-mask", "--masking", type=str2bool, default=False, help="using lyapunov based guide?")
     parser.add_argument("-out", "--output_path", type=str, default="./result/output.mp4", help="output video Path")
+    parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
     
     return parser.parse_args()
 
@@ -111,7 +112,7 @@ def test(conf):
     print("A(t) list :", AList)
     print("u(t) list :", uList)
     
-    print("Testomg Finish with...")
+    print("Testing Finish with...")
     prnt(conf)
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
@@ -142,6 +143,7 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) :
     F1_score = get_F1(origin_file, skipped_file) #TODO 
     
     print("✲ F1 score: ")
+    # drop한 프레임도 파일 생기게 그냥 0으로 된 프레임 만들어서 줘야될듯?
 
 
 if __name__ == "__main__":
