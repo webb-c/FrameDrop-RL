@@ -94,10 +94,10 @@ def test(conf, start_time, writer):
 
 def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    conf = add_args(conf)
     conf, log_path = parse_test_name(conf, start_time)
     writer = SummaryWriter(log_path)
     prnt(conf)
-    conf = add_args(conf)
     
     test(conf, start_time, writer)
 

@@ -73,6 +73,13 @@ def parse_test_args() :
 
 
 def add_args(conf):
+    model_path = conf['model_path']
+    method = re.split(r"[/\\]", model_path)[-2].split(".")[0]
+    if method == 'weight':
+        conf['learn_method'] = 'PPO'
+    else:
+        conf['learn_method'] = 'Q'
+    
     if conf['learn_method'] == 'Q':
         default_values = {
             'is_continue': False,
@@ -96,15 +103,8 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     """
     root_log = "./results/logs/test/"
     root_cluster = "./models/cluster/"
-    skip_list = ['fps', 'output_path']
     
     model_path = conf['model_path']
-    method = re.split(r"[/\\]", model_path)[-2].split(".")[0]
-    if method == 'weight':
-        conf['learn_method'] = 'PPO'
-    else:
-        conf['learn_method'] = 'Q'
-    
     name = re.split(r"[/\\]", model_path)[-1].split(".")[0]
     parts = name.split('_')
     cluster_video_name = ""
@@ -119,16 +119,6 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     
     conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + ".pkl")
     
-    name = start_time
-    for arg, value in conf.items():
-        if arg in skip_list:
-            continue
-        value = str(value)
-        if arg == 'video_path':
-            value = re.split(r"[/\\]", value)[-1].split(".")[0]
-        value = value.replace("_", "")
-        name += f"_{value}"
-    
-    log_path = os.path.join(root_log, name)
+    log_path = os.path.join(root_log, start_time)
     
     return conf, log_path
