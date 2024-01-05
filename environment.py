@@ -97,7 +97,7 @@ class VideoProcessor():
         Returns:
             bool: 영상이 끝났는가?
         """
-        skip_frame = np.zeros_like(self.cur_frame)
+        skip_frame = self.prev_frame
         for _ in range(skip):
             self.all_frames.append(self.cur_frame)
             if self.f1_score:
