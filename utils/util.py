@@ -14,17 +14,6 @@ def str2bool(v) :
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def save_parameters_to_csv(start_time:str, output_path:str, conf:Dict[str, Union[str, int, bool, float]]):
-    csv_file_path = 'config.csv'
-
-    with open(csv_file_path, 'w', newline='') as file:
-        csv_writer = csv.writer(file)
-        csv_writer.writerow([])
-        # 파라미터 딕셔너리를 CSV 파일에 저장
-        for key, value in conf.items():
-            csv_writer.writerow([key, value])
-
-
 def save_parameters_to_csv(start_time:str, conf:Dict[str, Union[str, int, bool, float]]):
     csv_file_path = 'config.csv'
     
