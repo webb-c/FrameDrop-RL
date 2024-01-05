@@ -46,6 +46,7 @@ from environment import Environment
 from utils.parser import parse_test_args, parse_test_name, add_args
 from utils.yolov5.detect import inference
 from utils.cal_F1 import get_F1
+from utils.util import save_parameters_to_csv
 
 
 def test(conf, start_time, writer):
@@ -85,8 +86,8 @@ def test(conf, start_time, writer):
         print("u(t) list :", u_list)
 
 
+    save_parameters_to_csv(start_time, conf)
     print("Testing Finish with...")
-    prnt(conf) 
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
     
@@ -113,9 +114,9 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
             command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
             inference(command)
         
-        skip_detection_path = os.path.join(root_detection, video_name+"_"+model_name + "/labels")
+        skip_detection_path = os.path.join(root_detection, conf['output_path'] + "/labels")
         if not os.path.exists(skip_detection_path):
-            command = ["--weights", "models/yolov5s6.pt", "--source", conf['output_path'], "--project", root_detection, "--name", video_name+"_"+model_name, "--save-txt", "--save-conf", "--nosave"]
+            command = ["--weights", "models/yolov5s6.pt", "--source", conf['output_path'], "--project", root_detection, "--name", conf['output_path'], "--save-txt", "--save-conf", "--nosave"]
             inference(command)
         
         origin_list = os.listdir(origin_detection_path)

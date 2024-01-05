@@ -119,6 +119,6 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     
     conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + ".pkl")
     
-    log_path = os.path.join(root_log, start_time)
+    log_path = os.path.join(root_log, start_time + "_" + conf['output_path'])
     
     return conf, log_path
