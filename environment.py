@@ -14,6 +14,8 @@ from utils.get_state import cluster_pred, cluster_load, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
 from utils.cal_F1 import get_F1
 
+ARRIVAL_MAX = 1.0
+
 random.seed(42)
 
 
@@ -171,11 +173,13 @@ class Environment():
         self.run = run
         self.fps = conf['fps']
         self.learn_method = conf['learn_method']
-
+        self.V = conf['V']
+        self.debug = conf['debug_mode']
+        
         if conf['pipe_num'] == 1:
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000, self.debug)
         else :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000)
+            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug)
         
         if self.run:
             self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'])
@@ -260,6 +264,7 @@ class Environment():
             self.Communicator.get/sent_omnet_message: omnet 통신
             __triggered_by_guideL Lyapunov based guide가 새로 들어왔을 때 변수 갱신, 리워드 계산을 위해 호출
         """
+        #print("\naction:", action)
         done = False
         ret = self.video_processor.read_video(skip=action)
         if not ret:
@@ -286,16 +291,19 @@ class Environment():
         
         if ret:
             self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
-            
+
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("reward") 
-            ratio_A = float(self.omnet.get_omnet_message())
+            path_cost = float(self.omnet.get_omnet_message())
             self.omnet.send_omnet_message("ACK")
             
+            ratio_A = ARRIVAL_MAX if path_cost == 0 else min(ARRIVAL_MAX, self.V / path_cost)
             new_A = math.floor(ratio_A*(self.fps))
+            if self.debug:
+                print("scaling cost using V:", ratio_A)
+                print("arrival rate using fps:", new_A)
+            
             r = self.__triggered_by_guide(new_A, action)
-
-        
         
         return self.state, r, done
 
@@ -406,19 +414,24 @@ class Communicator(Exception):
     Args:
         Exception (_type_)
     """
-    def __init__(self, pipeName:str, buffer_size:int):
+    def __init__(self, pipeName:str, buffer_size:int, debug:bool):
         self.pipeName = pipeName
         self.buffer_size = buffer_size
         self.pipe = self.init_pipe(self.pipeName, self.buffer_size)
+        self.debug = debug
 
 
     def send_omnet_message(self, msg:str):
+        if self.debug:
+            print("sending msg:", msg)
         win32file.WriteFile(self.pipe, msg.encode('utf-8'))  # wait unil complete reward cal & a(t)
 
         
     def get_omnet_message(self) -> str:
         response_byte = win32file.ReadFile(self.pipe, self.buffer_size)
         response_str = response_byte[1].decode('utf-8')
+        if self.debug:
+            print("receive msg:", response_str)
         return response_str
 
 

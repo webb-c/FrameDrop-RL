@@ -8,15 +8,18 @@ from utils.util import str2bool
 def parse_common_args() :
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("-v", "--video_path", type=str, default=None, help="training video path") # using Jetson-video : "data/jetson-train.mp4"
-    parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
+    parser.add_argument("-video", "--video_path", type=str, default=None, help="training video path") # using Jetson-video : "data/jetson-train.mp4"
+    parser.add_argument("-fps", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
     parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
-
+    parser.add_argument("-v", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
+    
+    parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
+    
     args, unknown = parser.parse_known_args()
     return args, parser
 
@@ -68,6 +71,8 @@ def parse_test_args() :
     parser.add_argument("-out", "--output_path", type=str, default=None, help="output video Path")
     parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
     parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
+    parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
+    parser.add_argument("-V", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
     
     return parser.parse_args()
 
@@ -118,7 +123,7 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
             cluster_video_name = value
     
     conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + ".pkl")
-    
-    log_path = os.path.join(root_log, start_time + "_" + conf['output_path'])
+    output_name = re.split(r"[/\\]", conf['output_path'])[-1].split(".")[0]
+    log_path = os.path.join(root_log, start_time + "_" + output_name)
     
     return conf, log_path

@@ -167,7 +167,8 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'])
     verifier(conf, cluster_path, detection_path, FFT_path)
     log_path, save_path = logging_mannager(start_time, conf, default_conf)
-    writer = SummaryWriter(log_path)
+    if not conf['debug_mode'] :
+        writer = SummaryWriter(log_path)
     conf['cluster_path'] = cluster_path
     conf['detection_path'] = detection_path
     conf['FFT_path'] = FFT_path
@@ -198,10 +199,11 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                     agent.update_qtable(trans)
                 agent.decrease_eps()
             # logging
-            writer.add_scalar("Reward/"+conf['reward_method'], env.reward_sum, epi)
-            writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), epi)
-            writer.add_scalar("Network/target_A(t)", env.sum_A, epi)
-            writer.add_scalar("Network/send_a(t)", env.sum_a, epi)
+            if not conf["debug_mode"]:
+                writer.add_scalar("Reward/"+conf['reward_method'], env.reward_sum, epi)
+                writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), epi)
+                writer.add_scalar("Network/target_A(t)", env.sum_A, epi)
+                writer.add_scalar("Network/send_a(t)", env.sum_a, epi)
             print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
             if epi == 0 or (epi % 50) == 0 or epi == conf["episode_num"]-1 :
                 agent.show_qtable()
@@ -235,14 +237,15 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             
             # record total_reward & avg_reward & loss for each episode
             print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
-            writer.add_scalar("Reward/"+conf['reward_method'], epi_reward, episode)
-            writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), episode)
-            writer.add_scalar("Network/target_A(t)", env.sum_A, episode)
-            writer.add_scalar("Network/send_a(t)", env.sum_a, episode)
-            if loss is not None :
-                writer.add_scalar("loss", loss.mean().item(), episode)
-                writer.add_scalar("value_loss", sum(value_loss).mean().item(), episode)
-                writer.add_scalar("policy_loss", sum(policy_loss).mean().item(), episode)
+            if not conf["debug_mode"]:
+                writer.add_scalar("Reward/"+conf['reward_method'], epi_reward, episode)
+                writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), episode)
+                writer.add_scalar("Network/target_A(t)", env.sum_A, episode)
+                writer.add_scalar("Network/send_a(t)", env.sum_a, episode)
+                if loss is not None :
+                    writer.add_scalar("loss", loss.mean().item(), episode)
+                    writer.add_scalar("value_loss", sum(value_loss).mean().item(), episode)
+                    writer.add_scalar("policy_loss", sum(policy_loss).mean().item(), episode)
 
             if episode % print_interval == 0 :
                 print("\n# of episode :{}, avg reward : {:.2f}, total reward : {:.2f}".format(episode, total_reward/print_interval, total_reward))
