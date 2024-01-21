@@ -16,7 +16,7 @@ def parse_common_args() :
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
     parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
-    parser.add_argument("-v", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
+    parser.add_argument("-V", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
     
@@ -64,8 +64,8 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
 def parse_test_args() : 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("-v", "--video_path", type=str, default=None, help="testing video path")
-    parser.add_argument("-f", "--fps", type=int, default=30, help="frame per sec")
+    parser.add_argument("-video", "--video_path", type=str, default=None, help="testing video path")
+    parser.add_argument("-fps", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-model", "--model_path", type=str, default=None, help="trained model path")
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using lyapunov based guide?")
     parser.add_argument("-out", "--output_path", type=str, default=None, help="output video Path")
@@ -73,6 +73,8 @@ def parse_test_args() :
     parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     parser.add_argument("-V", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
+    
+    parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
     
     return parser.parse_args()
 

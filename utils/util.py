@@ -14,8 +14,9 @@ def str2bool(v) :
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def save_parameters_to_csv(start_time:str, conf:Dict[str, Union[str, int, bool, float]]):
-    csv_file_path = 'config.csv'
+def save_parameters_to_csv(start_time:str, conf:Dict[str, Union[str, int, bool, float]], train:bool):
+    if train: csv_file_path = 'train_config.csv'
+    else: csv_file_path = 'test_config.csv'
     
     existing_data = []
     if os.path.exists(csv_file_path):

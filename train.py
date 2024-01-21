@@ -31,6 +31,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
 from utils.parser import parse_train_args
+from utils.util import save_parameters_to_csv
 
 from utils.yolov5.detect import inference
 
@@ -264,6 +265,9 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     prnt(conf)
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
+    
+    if not conf['debug_mode']:
+        save_parameters_to_csv(start_time, conf, train=True)
     
     return True
 

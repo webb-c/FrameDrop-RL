@@ -67,9 +67,10 @@ def test(conf, start_time, writer):
         A_list.append(env.target_A)
         u_list.append(a)
         a_list.append(conf['fps']-a)
-        writer.add_scalar("Network/Diff", (env.target_A - (conf['fps']-a)), step)
-        writer.add_scalar("Network/target_A(t)", env.target_A, step)
-        writer.add_scalar("Network/send_a(t)", conf['fps']-a, step)
+        if writer is not None:
+            writer.add_scalar("Network/Diff", (env.target_A - (conf['fps']-a)), step)
+            writer.add_scalar("Network/target_A(t)", env.target_A, step)
+            writer.add_scalar("Network/send_a(t)", conf['fps']-a, step)
         s, _, done = env.step(a)
         step += 1
     
@@ -85,8 +86,8 @@ def test(conf, start_time, writer):
         print("A(t) list :", A_list)
         print("u(t) list :", u_list)
 
-
-    save_parameters_to_csv(start_time, conf)
+    if not conf['debug_mode']:
+        save_parameters_to_csv(start_time, conf, train=False)
     print("Testing Finish with...")
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
@@ -97,7 +98,10 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
     conf = add_args(conf)
     conf, log_path = parse_test_name(conf, start_time)
-    writer = SummaryWriter(log_path)
+    if not conf['debug_mode']:
+        writer = SummaryWriter(log_path)
+    else:
+        writer = None
     prnt(conf)
     
     test(conf, start_time, writer)
@@ -130,8 +134,9 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
             F1_score = get_F1(origin_file, skip_file)
             total_F1 += F1_score
         
-        writer.add_scalar("F1_score/total", total_F1, 1)
-        writer.add_scalar("F1_score/average", total_F1/len(origin_list), 1)
+        if writer is not None:
+            writer.add_scalar("F1_score/total", total_F1, 1)
+            writer.add_scalar("F1_score/average", total_F1/len(origin_list), 1)
         print("✲ total F1 score: ", total_F1)
         print("✲ average F1 score: ", total_F1/len(origin_list))
         

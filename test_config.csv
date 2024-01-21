@@ -1,0 +1,6 @@
+start_time,video_path,fps,model_path,is_masking,output_path,f1_score,log_network,learn_method,is_continue,pipe_num,state_num,cluster_path
+240105-181822,data\RoadVideo_test.mp4,30,models\ndarray\240104-010226_videopath_RoadVideotrain_ismasking_False.npy,TRUE,results\nomasking_butmask_f1.mp4,TRUE,FALSE,Q,FALSE,1,15,./models/cluster/RoadVideotrain_15.pkl
+240105-182635,data\RoadVideo_test.mp4,30,models\ndarray\240104-010226_videopath_RoadVideotrain_ismasking_False.npy,True,results\nomasking_butmask_f1correct.mp4,True,False,Q,False,1,15,./models/cluster/RoadVideotrain_15.pkl
+240105-183323,data\RoadVideo_test.mp4,30,models\ndarray\240104-010226_videopath_RoadVideotrain_ismasking_False.npy,False,results\nomasking_nomask_f1correct.mp4,True,False,Q,False,1,15,./models/cluster/RoadVideotrain_15.pkl
+240109-141627,data\RoadVideo_test.mp4,30,models\ndarray\240108-145638_videopath_RoadVideotrain.npy,False,results\masking_nomask_f1correct.mp4,True,False,Q,False,1,15,./models/cluster/RoadVideotrain_15.pkl
+240109-141828,data\RoadVideo_test.mp4,30,models\ndarray\240108-145638_videopath_RoadVideotrain.npy,True,results\masking_mask_f1correct.mp4,True,False,2,Q,False,15,./models/cluster/RoadVideotrain_15.pkl
