@@ -25,7 +25,7 @@ import numpy as np
 from tqdm import tqdm
 from agent import Agent
 from agent_ppo import PPOAgent
-from environment import Environment
+from environment import Environment, Environment_withoutNET
 import datetime
 from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train, cluster_init
@@ -164,6 +164,8 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     Returns:
         bool: 정상적으로 학습이 종료되면 True를 반환합니다.
     """
+    if not conf['omnet_mode'] and conf['is_masking'] :
+        assert True, "if you want masking mode, omnet mode must be set to True"
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S") 
     cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'])
     verifier(conf, cluster_path, detection_path, FFT_path)
@@ -175,7 +177,10 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     conf['FFT_path'] = FFT_path
     prnt(conf)
     
-    env = Environment(conf)
+    if conf['omnet_mode']:
+        env = Environment(conf)
+    else:
+        env = Environment_withoutNET(conf)
     
     if conf['learn_method'] == "Q" :
         agent = Agent(conf, run=False)
@@ -188,7 +193,10 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                 show_log = True
             s = env.reset(show_log=show_log)
             while not done:
-                require_skip = conf['fps'] - env.target_A
+                if conf['omnet_mode']:
+                    require_skip = conf['fps'] - env.target_A
+                else :
+                    require_skip = 0
                 a = agent.get_action(s, require_skip, rand)
                 s, _, done = env.step(a)
             if env.buffer.get_size() < conf['start_buffer_size']:
@@ -202,17 +210,20 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             # logging
             if not conf["debug_mode"]:
                 writer.add_scalar("Reward/"+conf['reward_method'], env.reward_sum, epi)
-                writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), epi)
-                writer.add_scalar("Network/target_A(t)", env.sum_A, epi)
                 writer.add_scalar("Network/send_a(t)", env.sum_a, epi)
-            print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
+                if conf['omnet_mode']:
+                    writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), epi)
+                    writer.add_scalar("Network/target_A(t)", env.sum_A, epi)
+                    print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
             if epi == 0 or (epi % 50) == 0 or epi == conf["episode_num"]-1 :
                 agent.show_qtable()
                 env.show_trans()
             
-            env.omnet.get_omnet_message()
-            env.omnet.send_omnet_message("finish")
+            if conf['omnet_mode']:
+                env.omnet.get_omnet_message()
+                env.omnet.send_omnet_message("finish")
     
+    #TODO:
     elif conf['learn_method'] == "PPO" :
         agent = PPOAgent(conf)
         total_reward = 0
@@ -256,7 +267,8 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             env.omnet.send_omnet_message("finish")
     
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
-    env.omnet.close_pipe()
+    if conf['omnet_mode']: 
+        env.omnet.close_pipe()
     ret = agent.save_model(save_path)
     if not ret:
         print("Saving model ended abnormally")

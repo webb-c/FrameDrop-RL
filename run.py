@@ -92,6 +92,11 @@ def test(conf, start_time, writer):
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
     
+    print("\n===== Fractions =====")
+    fraction_value = env.video_processor.num_processed / env.video_processor.num_all 
+    rounded_fraction = round(fraction_value, 4)
+    print(rounded_fraction)
+
 
 
 def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:

@@ -24,6 +24,7 @@ class Agent():
         self.fps = conf['fps']
         self.masking = conf['is_masking']
         self.run = run
+        self.omnet_mode = conf['omnet_mode']
         
         if not self.run: 
             self.eps, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
@@ -91,7 +92,10 @@ class Agent():
         Args:
             trans (Tuple[require_skip, state, action, next_state, reward])
         """
-        require_skip, s, a, s_prime, r = trans
+        if self.omnet_mode:
+            require_skip, s, a, s_prime, r = trans
+        else:
+            s, a, s_prime, r = trans
         self.qtable[s, a] = self.qtable[s, a] + self.lr * \
             (r + self.gamma * np.max(self.qtable[s_prime, :]) - self.qtable[s, a])
 
