@@ -80,7 +80,6 @@ def test(conf, start_time, writer):
     
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
     
-    print("a(t) :", env.sum_a, "A(t) :", env.sum_A)
     if conf['log_network']:
         print("a(t) list :", a_list)
         print("A(t) list :", A_list)
@@ -88,14 +87,14 @@ def test(conf, start_time, writer):
 
     if not conf['debug_mode']:
         save_parameters_to_csv(start_time, conf, train=False)
-    print("Testing Finish with...")
-    print("\n✱ start time :\t", start_time)
-    print("✱ finish time:\t", finish_time)
     
-    print("\n===== Fractions =====")
     fraction_value = env.video_processor.num_processed / env.video_processor.num_all 
     rounded_fraction = round(fraction_value, 4)
-    print(rounded_fraction)
+    
+    if writer is not None:
+        writer.add_scalar("Fractions", rounded_fraction, 1)
+        
+    return env.sum_a, env.sum_A, finish_time, rounded_fraction
 
 
 
@@ -109,11 +108,9 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         writer = None
     prnt(conf)
     
-    test(conf, start_time, writer)
+    a, A, finish_time, rounded_fraction = test(conf, start_time, writer)
 
-    
     if conf['f1_score'] :
-        print("\n===== cheking F1 score =====")
         root_detection =  "./data/detect/test/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
         model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
@@ -142,6 +139,22 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         if writer is not None:
             writer.add_scalar("F1_score/total", total_F1, 1)
             writer.add_scalar("F1_score/average", total_F1/len(origin_list), 1)
+        
+    
+    print("Testing Finish with...")
+    prnt(conf)
+    print("\n✱ start time :\t", start_time)
+    print("✱ finish time :\t", finish_time)
+
+    print("\n===== Networks =====")
+    print("✲ Σa(t) :\t", a)
+    print("✲ ΣA(t) :\t", A)
+    
+    print("\n===== Fractions =====")
+    print("✲ processed frame rate :\t", rounded_fraction)
+
+    if conf['f1_score'] :
+        print("\n=====  F1 score =====")
         print("✲ total F1 score: ", total_F1)
         print("✲ average F1 score: ", total_F1/len(origin_list))
         

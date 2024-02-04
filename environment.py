@@ -140,10 +140,12 @@ class VideoProcessor():
         """
         frame_shape = self.processed_frames[0].shape[:2]
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        with cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0])) as out:
-            for frame in self.processed_frames:
-                out.write(frame)
+        out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0]))
+        for frame in self.processed_frames:
+            out.write(frame)
 
+        out.release()
+        
         return os.path.exists(self.output_path)
     
     
@@ -184,7 +186,7 @@ class Environment():
             self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug_mode)
         
         if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'])
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'], write=True)
         else:
             self.video_processor = VideoProcessor(conf['video_path'], conf['fps'])
             self.buffer = ReplayBuffer(conf['buffer_size'])

@@ -13,17 +13,16 @@ def get_state_distriburtion(model, data, clusterPath) :
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.scatter(centers[:,0], centers[:,1], s =250, marker='*', c='red', label='centroids')
-    ax.scatter(dfData['X'], dfData['Y'], c=labels,s=40, cmap='winter')
+    scatter = ax.scatter(dfData['X'], dfData['Y'], c=labels, s=40, cmap='winter')
 
     ax.set_title('K-Means Clustering')
     ax.set_xlabel('state : MSE')
     ax.set_ylabel('state : blur')
-    ax.legend()
-    # plt.show()
-    video_name = clusterPath.split("/")[-1].split(".")[0]
-    path = "results/figure/"+video_name+".png"
-    plt.savefig(path)
+    
+    legend1 = ax.legend(*scatter.legend_elements(), title="Clusters")
+    ax.add_artist(legend1)
+    
+    plt.show()
 
 def cluster_init(state_num=15):
     model = KMeans(n_clusters=state_num, n_init=10, random_state=42)

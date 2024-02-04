@@ -73,7 +73,8 @@ def parse_test_args() :
     parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
     parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
-    parser.add_argument("-V", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
+    # model_1: 100000000 | SLN: 50 | YOLO: 
+    parser.add_argument("-V", "--V", type=int, default=100000, help="trade off parameter between stability & accuracy")
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
     
@@ -84,8 +85,7 @@ def add_args(conf):
     model_path = conf['model_path']
     assert model_path is not None, "model_path is None."
     
-    if conf['is_masking']: conf['omnet_mode'] = True
-    else: conf['omnet_mode'] = False
+    conf['omnet_mode'] = True
 
     method = re.split(r"[/\\]", model_path)[-2].split(".")[0]
     if method == 'weight':
