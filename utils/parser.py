@@ -16,7 +16,7 @@ def parse_common_args() :
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
     parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
-    parser.add_argument("-V", "--V", type=int, default=100000000, help="trade off parameter between stability & accuracy")
+    parser.add_argument("-V", "--V", type=float, default=100000000, help="trade off parameter between stability & accuracy")
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="using debug tool?")
     parser.add_argument("-omnet", "--omnet_mode", type=str2bool, default=False, help="using omnet guide in RL run?")
@@ -74,7 +74,7 @@ def parse_test_args() :
     parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     # model_1: 100000000 | SLN: 50 | YOLO: 
-    parser.add_argument("-V", "--V", type=int, default=100000, help="trade off parameter between stability & accuracy")
+    parser.add_argument("-V", "--V", type=float, default=100000, help="trade off parameter between stability & accuracy")
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
     

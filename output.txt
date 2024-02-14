@@ -1,0 +1,44 @@
+2024-01-22 15:33:21.486659: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+╭─────────────────┬──────────────────────────────╮
+│video_path       │data\RoadVideo_train.mp4      │
+│fps              │30                            │
+│beta             │1.35                          │
+│is_masking       │True                          │
+│is_continue      │False                         │
+│learn_method     │Q                             │
+│reward_method    │default                       │
+│pipe_num         │1                             │
+│V                │100000000                     │
+│debug_mode       │True                          │
+│episode_num      │500                           │
+│gamma            │0.9                           │
+│eps_init         │1.0                           │
+│eps_dec          │0.005                         │
+│eps_min          │0.1                           │
+│state_num        │15                            │
+│start_buffer_size│1000                          │
+│sampling_num     │500                           │
+│buffer_size      │20000                         │
+│learning_rate    │0.05                          │
+│cluster_path     │./models/cluster/RoadVideotrai│
+│                 │n_15.pkl                      │
+│detection_path   │./data/detect/RoadVideo_train/│
+│                 │labels                        │
+│FFT_path         │./data/FFT/RoadVideo_train.npy│
+╰─────────────────┴──────────────────────────────╯
+\\.\pipe\frame_drop_rl
+waiting connect OMNeT++ ...
+finshing connect OMNeT++
+load cluster model in init...
+train start !
+  0%|          | 0/500 [00:00<?, ?it/s]  0%|          | 0/500 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "D:\VSC\INFOCOM\FrameDrop-RL\train.py", line 277, in <module>
+    ret = main(conf, default_conf)
+  File "D:\VSC\INFOCOM\FrameDrop-RL\train.py", line 193, in main
+    s, _, done = env.step(a)
+  File "D:\VSC\INFOCOM\FrameDrop-RL\environment.py", line 284, in step
+    self.omnet.get_omnet_message()
+  File "D:\VSC\INFOCOM\FrameDrop-RL\environment.py", line 433, in get_omnet_message
+    response_byte = win32file.ReadFile(self.pipe, self.buffer_size)
+pywintypes.error: (109, 'ReadFile', '파이프가 끝났습니다.')

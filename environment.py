@@ -79,8 +79,7 @@ class VideoProcessor():
         self.write = write
         self.cap = cv2.VideoCapture(self.video_path)
         self.processed_frames = []
-        if self.write:
-            self.num_all, self.num_processed = 0, 0
+        self.num_all, self.num_processed = 0, 0
     
     
     def reset(self):
@@ -92,8 +91,7 @@ class VideoProcessor():
         _, f_init = self.cap.read()
         self.prev_frame, self.cur_frame = f_init, f_init
         self.idx = 0
-        if self.write:
-            self.num_all, self.num_processed = 0, 0
+        self.num_all, self.num_processed = 0, 0
     
     
     def read_video(self, skip:int) -> bool:
