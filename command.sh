@@ -36,3 +36,11 @@ python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/2
 python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/240130-151415_videopath_RoadVideotrain_ismasking_False.npy --is_masking True --output_path results/ABILENE_False_True_Agent1.mp4 --V 0.05 --f1_score False
 python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/240130-151415_videopath_RoadVideotrain_ismasking_False.npy --is_masking True --output_path results/ABILENE_False_True_Agent2.mp4 --V 0.05 --pipe_num 2 --f1_score False
 python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/240130-151415_videopath_RoadVideotrain_ismasking_False.npy --is_masking True --output_path results/ABILENE_False_True_Agent3.mp4 --V 0.05 --pipe_num 3 --f1_score False
+
+
+
+
+#REAL
+python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/240130-151415_videopath_RoadVideotrain_ismasking_False.npy --is_masking False --f1_score False --output_path results/ABILENE_False_False_Agent1.mp4 --V 1000000
+python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/240130-151415_videopath_RoadVideotrain_ismasking_False.npy --is_masking False --f1_score False --output_path results/ABILENE_False_False_Agent2.mp4 --V 1000000 --pipe_num 2
+python run.py --video_path data/RoadVideo_test.mp4 --model_path models/ndarray/240130-151415_videopath_RoadVideotrain_ismasking_False.npy --is_masking False --f1_score False --output_path results/ABILENE_False_False_Agent2.mp4 --V 1000000 --pipe_num 3
