@@ -36,7 +36,7 @@ from utils.util import save_parameters_to_csv
 from utils.yolov5.detect import inference
 
 
-def path_manager(video_path: str, state_num: int) -> Tuple[str, str, str] :
+def path_manager(video_path: str, state_num: int, radius: int) -> Tuple[str, str, str] :
     """ video path를 전달받아서 cluster, detection, FFT 경로를 지정하여 반환합니다.
 
     Args:
@@ -46,12 +46,12 @@ def path_manager(video_path: str, state_num: int) -> Tuple[str, str, str] :
     Returns:
         Tuple[cluster_path, detection_path, FFT_path]
     """
-    root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/", "./data/FFT/"
+    root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/train/", "./data/FFT/"
     video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
     cluster_video_name = video_name.replace("_", "")
-    cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + ".pkl")
+    cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(radius) + ".pkl")
     detection_path = os.path.join(root_detection, video_name + "/labels")
-    FFT_path = os.path.join(root_FFT, video_name + ".npy")
+    FFT_path = os.path.join(root_FFT, video_name + "_" + str(radius) + ".npy")
     
     return cluster_path, detection_path, FFT_path
 
@@ -110,7 +110,7 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
     
     if not os.path.exists(detection_path):
         print("start making detection files ...")
-        root_detection =  "./data/detect/"
+        root_detection =  "./data/detect/train/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
         command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
         inference(command)
@@ -121,12 +121,13 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
         cap = cv2.VideoCapture(conf['video_path'])
         FFTList = []
         idx = 0
+        r = conf["radius"]
         while True:
             print("video 1/1", idx)
             ret, frame = cap.read()
             if not ret:
                 break
-            blur = get_FFT(frame)
+            blur = get_FFT(frame, radius=r)
             FFTList.append(blur)
             idx += 1
         cap.release()
@@ -167,7 +168,7 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     if not conf['omnet_mode'] and conf['is_masking'] :
         assert True, "if you want masking mode, omnet mode must be set to True"
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S") 
-    cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'])
+    cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'], conf["radius"])
     verifier(conf, cluster_path, detection_path, FFT_path)
     log_path, save_path = logging_mannager(start_time, conf, default_conf)
     if not conf['debug_mode'] :

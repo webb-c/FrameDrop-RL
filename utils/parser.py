@@ -10,11 +10,19 @@ def parse_common_args() :
     
     parser.add_argument("-video", "--video_path", type=str, default=None, help="training video path") # using Jetson-video : "data/jetson-train.mp4"
     parser.add_argument("-fps", "--fps", type=int, default=30, help="frame per sec")
-    parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")  # using Jetson-video : 0.5
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
-    parser.add_argument("-reward", "--reward_method", type=str, default="default", help="using reward function")
+    
+    ### NOTE THAT!!! ###
+    parser.add_argument("-reward", "--reward_method", type=int, default="0", help="using which reward function")
+    parser.add_argument("-important", "--important_method", type=int, default="0", help="using which important score")
+    parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
+    parser.add_argument("-w", "--window", type=int, default=30, help="used to calculate important score")
+    parser.add_argument("-r", "--radius", type=int, default=60, help="used to calculate blurring score")
+    parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
+    parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
+    
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     parser.add_argument("-V", "--V", type=float, default=100000000, help="trade off parameter between stability & accuracy")
     
@@ -28,7 +36,7 @@ def parse_common_args() :
 def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Union[str, bool, int, float]]]:
     args, parser = parse_common_args() 
     
-    parser.add_argument("-episode", "--episode_num", type=int, default=500, help="number of train episode")
+    parser.add_argument("-episode", "--episode_num", type=int, default=300, help="number of train episode")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
     
     #TODO 
@@ -36,7 +44,6 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
         parser.add_argument("-ei", "--eps_init", type=float, default=1.0, help="epsilon init value")
         parser.add_argument("-ed", "--eps_dec", type=float, default=0.005, help="epsilon decrese value")
         parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
-        parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
         parser.add_argument("-sb", "--start_buffer_size", type=int, default=1000, help="start train buffer size")
         parser.add_argument("-sampling", "--sampling_num", type=int, default=500, help="Q-learning update num")
         parser.add_argument("-buff", "--buffer_size", type=int, default=20000, help="Replay buffer size")
@@ -128,8 +135,13 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
             conf['state_num'] = int(value)
         if key == 'videopath':
             cluster_video_name = value
+        if key == 'actiondim':
+            conf['action_dim'] = int(value)
+        if key == 'radius':
+            conf['radius'] = int(value)
+
     
-    conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + ".pkl")
+    conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + ".pkl")
     assert conf["output_path"] is not None, "output_path is None."
     output_name = re.split(r"[/\\]", conf['output_path'])[-1].split(".")[0]
     log_path = os.path.join(root_log, start_time + "_" + output_name)

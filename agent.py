@@ -25,6 +25,7 @@ class Agent():
         self.masking = conf['is_masking']
         self.run = run
         self.omnet_mode = conf['omnet_mode']
+        self.action_dim = conf['action_dim']
         
         if not self.run: 
             self.eps, self.eps_dec, self.eps_min = conf['eps_init'], conf['eps_dec'], conf['eps_min']
@@ -33,8 +34,8 @@ class Agent():
         if conf['is_continue'] or self.run : 
             self.qtable = self.__load_model(conf['model_path'])
         else :
-            self.qtable = np.zeros((self.state_num, self.fps+1))  # s, a
-        self.action_dim = list(range(self.fps+1))  # 0 to fps
+            self.qtable = np.zeros((self.state_num, self.action_dim+1))  # s, a
+        self.action_space = list(range(self.action_dim+1))  # 0 to fps
         self.isFirst = True
 
 
@@ -64,14 +65,14 @@ class Agent():
                 temp_vec[action] = (-1)*INF
         else :
             if rand :
-                action = random.choice(self.action_dim[:])
+                action = random.choice(self.action_space[:])
             else : 
                 p = random.random()
                 if p < self.eps :  
                     if self.masking : 
-                        action = random.choice(self.action_dim[require_skip:])
+                        action = random.choice(self.action_space[require_skip:])
                     else : 
-                        action = random.choice(self.action_dim[:])
+                        action = random.choice(self.action_space[:])
                 else:  
                     temp = copy.deepcopy(self.qtable[s, :])
                     temp_vec = temp.flatten()

@@ -62,7 +62,7 @@ class ReplayBuffer():
 class VideoProcessor():
     """영상을 프레임단위로 읽어들이거나 내보내기 위한 관리자
     """
-    def __init__(self, video_path: str, fps: int, output_path: str=None, f1_score: bool=True, write:bool=False) :
+    def __init__(self, video_path: str, fps: int, action_dim: int, output_path: str=None, f1_score: bool=True, write:bool=False) :
         """init
         
         Args:
@@ -75,6 +75,7 @@ class VideoProcessor():
         self.video_path = video_path
         self.output_path = output_path
         self.fps = fps
+        self.action_dim = action_dim
         self.f1_score = f1_score
         self.write = write
         self.cap = cv2.VideoCapture(self.video_path)
@@ -115,7 +116,7 @@ class VideoProcessor():
             if not ret:
                 return False
         
-        for _ in range(self.fps - skip):
+        for _ in range(self.action_dim - skip):
             if self.write:
                 self.processed_frames.append(self.cur_frame)
             
@@ -436,12 +437,20 @@ class Environment_withoutNET():
         self.V = conf['V']
         self.debug_mode = conf['debug_mode']
         
+        self.radius = conf['radius']
+        self.state_num = conf['state_num']
+        self.action_dim = conf['action_dim']
+        
         if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'], write=True)
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_score'], write=True)
         else:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'])
-            self.buffer = ReplayBuffer(conf['buffer_size'])
+            # training (reward) argument
+            self.reward_method = conf['reward_method']
+            self.important_method = conf['important_method']
             self.beta = conf['beta']
+            self.window = conf['window']
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'])
+            self.buffer = ReplayBuffer(conf['buffer_size'])
             self.__detect(conf['detection_path'], conf['FFT_path'])
         
         if self.learn_method == "Q" :
@@ -471,7 +480,7 @@ class Environment_withoutNET():
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
         
         if self.run :
-            self.origin_state = [0, get_FFT(self.cur_frame)]
+            self.origin_state = [0, get_FFT(self.cur_frame, self.radius)]
         else :
             self.origin_state = [0, self.FFT_list[self.idx]]
         
@@ -555,13 +564,13 @@ class Environment_withoutNET():
             
         """
         r = 0
-        self.send_A = self.fps - action
+        self.send_A = self.action_dim - action
         self.sum_a += self.send_A
         self.trans_list.append(self.state)
         self.trans_list.append(action)
         
         if self.run :
-            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame)]
+            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame, self.radius)]
         else :
             self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
     
@@ -579,19 +588,18 @@ class Environment_withoutNET():
         
         return r
 
-
     def __cal_important(self) -> List[float]:
         """현재 idx에서 1초동안의 프레임 (=fps)을 이용하여 물체 개수로부터 중요도를 계산합니다.
         
         Returns: List[important_score]
         """
         # get importance
-        std_idx = self.idx - self.fps
+        std_idx = self.idx - self.action_dim
         important_list = []
         imp_max = 1
         imp_min = -1 * self.beta
-        max_num = max(self.obj_num_list[std_idx : self.idx+1])
-        for f in range(self.fps) :
+        max_num = max(self.obj_num_list[std_idx : self.window+1])
+        for f in range(self.action_dim) :
             importance = (self.obj_num_list[std_idx+f] / max_num) if max_num != 0 else 0
             #normalized_importance = (imp_max - imp_min)*(importance) + imp_min
             #important_list.append(normalized_importance)
