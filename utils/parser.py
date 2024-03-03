@@ -77,6 +77,7 @@ def parse_test_args() :
     parser.add_argument("-V", "--V", type=float, default=100000, help="trade off parameter between stability & accuracy")
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
+    parser.add_argument("-omnet", "--omnet_mode", type=str2bool, default=False, help="using omnet guide in RL run?")
     
     return parser.parse_args()
 
@@ -84,8 +85,6 @@ def parse_test_args() :
 def add_args(conf):
     model_path = conf['model_path']
     assert model_path is not None, "model_path is None."
-    
-    conf['omnet_mode'] = True
 
     method = re.split(r"[/\\]", model_path)[-2].split(".")[0]
     if method == 'weight':

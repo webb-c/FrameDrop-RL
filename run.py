@@ -42,7 +42,7 @@ from typing import Tuple, Union, Dict
 from torch.utils.tensorboard import SummaryWriter
 from agent import Agent
 from agent_ppo import PPOAgent
-from environment import Environment
+from environment import Environment, Environment_withoutNET
 from utils.parser import parse_test_args, parse_test_name, add_args
 from utils.yolov5.detect import inference
 from utils.cal_F1 import get_F1
@@ -50,7 +50,14 @@ from utils.util import save_parameters_to_csv
 
 
 def test(conf, start_time, writer):
-    env = Environment(conf, run=True) 
+    if not conf['omnet_mode'] and conf['is_masking'] :
+        assert True, "if you want masking mode, omnet mode must be set to True"
+    
+    if conf['omnet_mode']:
+        env = Environment(conf, run=True)
+    else:
+        env = Environment_withoutNET(conf, run=True)
+
     agent = Agent(conf, run=True)
     done = False
     print("Ready ...")
@@ -58,31 +65,35 @@ def test(conf, start_time, writer):
     a_list, u_list, A_list = [], [], []
     
     step = 0
-    while not done:       
+    while not done:
         if conf['is_masking'] :
             require_skip = conf['fps'] - env.target_A
         else :
             require_skip = 0
         a = agent.get_action(s, require_skip, False)
-        A_list.append(env.target_A)
+        if conf['omnet_mode']:
+            A_list.append(env.target_A)
         u_list.append(a)
         a_list.append(conf['fps']-a)
         if writer is not None:
-            writer.add_scalar("Network/Diff", (env.target_A - (conf['fps']-a)), step)
-            writer.add_scalar("Network/target_A(t)", env.target_A, step)
+            if conf['omnet_mode']:
+                writer.add_scalar("Network/Diff", (env.target_A - (conf['fps']-a)), step)
+                writer.add_scalar("Network/target_A(t)", env.target_A, step)
             writer.add_scalar("Network/send_a(t)", conf['fps']-a, step)
         s, _, done = env.step(a)
         step += 1
     
-    env.omnet.get_omnet_message()
-    env.omnet.send_omnet_message("finish")
-    env.omnet.close_pipe()
+    if conf['omnet_mode']:
+        env.omnet.get_omnet_message()
+        env.omnet.send_omnet_message("finish")
+        env.omnet.close_pipe()
     
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
     
     if conf['log_network']:
         print("a(t) list :", a_list)
-        print("A(t) list :", A_list)
+        if conf['omnet_mode']:
+            print("A(t) list :", A_list)
         print("u(t) list :", u_list)
 
     if not conf['debug_mode']:
@@ -93,8 +104,11 @@ def test(conf, start_time, writer):
     
     if writer is not None:
         writer.add_scalar("Fractions", rounded_fraction, 1)
-        
-    return env.sum_a, env.sum_A, finish_time, rounded_fraction
+    
+    A = 0
+    if conf['omnet_mode']:
+        A = env.sum_A
+    return env.sum_a, A, finish_time, rounded_fraction
 
 
 

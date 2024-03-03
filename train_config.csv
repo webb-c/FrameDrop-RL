@@ -1,3 +1,4 @@
 240130-151415,data/RoadVideo_train.mp4,30,1.35,False,False,Q,default,1,100000000,False,False,500,0.9,1.0,0.005,0.1,15,1000,500,20000,0.05,./models/cluster/RoadVideotrain_15.pkl,./data/detect/RoadVideo_train/labels,./data/FFT/RoadVideo_train.npy
 240204-172450,data/RoadVideo_train.mp4,30,5.0,False,False,Q,default,1,100000000,False,False,500,0.9,1.0,0.005,0.1,15,1000,500,20000,0.05,./models/cluster/RoadVideotrain_15.pkl,./data/detect/RoadVideo_train/labels,./data/FFT/RoadVideo_train.npy
 240206-122549,data/RoadVideo_train.mp4,30,0.5,False,False,Q,default,1,100000000,False,False,500,0.9,1.0,0.005,0.1,15,1000,500,20000,0.05,./models/cluster/RoadVideotrain_15.pkl,./data/detect/RoadVideo_train/labels,./data/FFT/RoadVideo_train.npy
+240302-164117,data/RoadVideo_train.mp4,30,1.35,False,False,Q,default,1,100000000,False,False,500,0.9,1.0,0.005,0.1,15,1000,500,20000,0.05,./models/cluster/RoadVideotrain_15.pkl,./data/detect/RoadVideo_train/labels,./data/FFT/RoadVideo_train.npy

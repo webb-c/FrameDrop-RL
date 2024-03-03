@@ -371,9 +371,10 @@ class Environment():
         max_num = max(self.obj_num_list[std_idx : self.idx+1])
         for f in range(self.fps) :
             importance = (self.obj_num_list[std_idx+f] / max_num) if max_num != 0 else 0
-            normalized_importance = (imp_max - imp_min)*(importance) + imp_min
-            important_list.append(normalized_importance)
-        
+            #normalized_importance = (imp_max - imp_min)*(importance) + imp_min
+            #important_list.append(normalized_importance)
+            important_list.append(importance)
+
         return important_list
 
 
@@ -436,7 +437,7 @@ class Environment_withoutNET():
         self.debug_mode = conf['debug_mode']
         
         if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'])
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'], write=True)
         else:
             self.video_processor = VideoProcessor(conf['video_path'], conf['fps'])
             self.buffer = ReplayBuffer(conf['buffer_size'])
@@ -592,8 +593,9 @@ class Environment_withoutNET():
         max_num = max(self.obj_num_list[std_idx : self.idx+1])
         for f in range(self.fps) :
             importance = (self.obj_num_list[std_idx+f] / max_num) if max_num != 0 else 0
-            normalized_importance = (imp_max - imp_min)*(importance) + imp_min
-            important_list.append(normalized_importance)
+            #normalized_importance = (imp_max - imp_min)*(importance) + imp_min
+            #important_list.append(normalized_importance)
+            important_list.append(importance)
         
         return important_list
 
