@@ -157,6 +157,7 @@ class VideoProcessor():
         return self.prev_frame, self.cur_frame, self.idx
 
 
+#TODO: reward parameter 추가
 class Environment():
     """강화학습 agent와 상호작용하는 environment
     """
@@ -369,9 +370,9 @@ class Environment():
         important_list = []
         imp_max = 1
         imp_min = -1 * self.beta
-        max_num = max(self.obj_num_list[std_idx : self.idx+1])
+        reg_num = max(self.obj_num_list[std_idx : self.idx+1])
         for f in range(self.fps) :
-            importance = (self.obj_num_list[std_idx+f] / max_num) if max_num != 0 else 0
+            importance = (self.obj_num_list[std_idx+f] / reg_num) if reg_num != 0 else 0
             #normalized_importance = (imp_max - imp_min)*(importance) + imp_min
             #important_list.append(normalized_importance)
             important_list.append(importance)
@@ -593,16 +594,43 @@ class Environment_withoutNET():
         
         Returns: List[important_score]
         """
-        # get importance
-        std_idx = self.idx - self.action_dim
+        reg_list = []
         important_list = []
-        imp_max = 1
-        imp_min = -1 * self.beta
-        max_num = max(self.obj_num_list[std_idx : self.window+1])
+        std_idx = self.idx - self.action_dim #self.idx 다음 frame을 의미하므로 ㅇㅇ 
+        
+        def max_func(lst):
+            return max(lst)
+        
+        def min_func(lst):
+            return min(lst)
+        
+        def avg_func(lst):
+            return sum(lst) / len(lst)
+        
+        if self.important_method[1] == '0':
+            reg_func = max_func
+            
+        elif self.important_method[1] == '1':
+            reg_func = min_func
+            
+        elif self.important_method[1] == '2':
+            reg_func = avg_func
+        
+        
+        if self.important_method[0] == '0':
+            for f in range(self.action_dim) :
+                reg_list.append(reg_func(self.obj_num_list[ std_idx : self.window+1 ]))
+        
+        elif self.important_method[0] == '1':
+            for f in range(self.action_dim) :
+                gap = (self.window - 1)//2
+                cur_idx = std_idx + f
+                reg_list.append(reg_func(self.obj_num_list[ cur_idx-gap : cur_idx+gap+1 ]))
+        
+
         for f in range(self.action_dim) :
-            importance = (self.obj_num_list[std_idx+f] / max_num) if max_num != 0 else 0
-            #normalized_importance = (imp_max - imp_min)*(importance) + imp_min
-            #important_list.append(normalized_importance)
+            cur_idx = std_idx + f
+            importance = (self.obj_num_list[cur_idx] / reg_list[f]) if reg_list[f] != 0 else 0
             important_list.append(importance)
         
         return important_list
