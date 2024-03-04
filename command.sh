@@ -29,8 +29,10 @@ $ ../DATASET/test/JN.mp4
 
 
 # Temporary PERFORMANCE INCREASING TEST
-$ python train.py -video ../DATASET/train/{}.mp4 -reward {} -mask False -omnet False
+$ python train.py -video ../DATASET/train/{}.mp4 -important {} -reward {} -mask False -omnet False
 $ python run.py -video ../DATASET/test/{}.mp4 -model models/ndarray/{}.npy -out results/PI/{}.mp4 -mask False -omnet False -f1 True 
 
 #default
 python train.py -video ../DATASET/train/JK-1.mp4 -mask False -omnet False
+python train.py -video ../DATASET/train/JK-1.mp4 -reward 10 -mask False -omnet False  -episode 100 
+python train.py -video ../DATASET/train/JK-1.mp4 -reward 20 -t 0.9 -mask False -omnet False  -episode 100 

@@ -23,6 +23,8 @@ def parse_common_args() :
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
+    parser.add_argument("-t", "--target_f1", type=float, default=0.9, help="target F1 scores")
+    
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     parser.add_argument("-V", "--V", type=float, default=100000000, help="trade off parameter between stability & accuracy")
     
@@ -79,6 +81,9 @@ def parse_test_args() :
     parser.add_argument("-out", "--output_path", type=str, default=None, help="output video Path")
     parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
     parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
+    
+    parser.add_argument("-t", "--target_f1", type=float, default=0.9, help="target F1 scores")
+    
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     # model_1: 100000000 | SLN: 50 | YOLO: 
     parser.add_argument("-V", "--V", type=float, default=100000, help="trade off parameter between stability & accuracy")

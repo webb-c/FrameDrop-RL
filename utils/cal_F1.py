@@ -1,4 +1,4 @@
-import os
+import re
 """
 for calculate F1 score;
 using ref_frame comparison with skip_frame
@@ -45,7 +45,25 @@ def _cal_F1(filePred, skipFilePred, threshold=0.5) :  # pred, labels
     F1 = 2*(precision*recall) / (precision+recall) if (precision+recall) != 0 else 0
     return F1
 
+
 def get_F1(fileName, skipFileName) :
     filePred = _parse_results(fileName)
     skipFilePred = _parse_results(skipFileName)
+    
+    return _cal_F1(filePred, skipFilePred)
+
+
+def get_F1_with_idx(last_idx, process_idx, video_path) :
+    ROOT = 'D:/VSC/INFOCOM/FrameDrop-RL/data/detect/train/'
+    video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
+    file_path = ROOT + video_name + '/labels/' + video_name +"_"
+    if last_idx < 1:
+        last_idx = 1
+    if process_idx < 1:
+        process_idx <1
+    skipFileName = file_path + str(last_idx) + ".txt"
+    fileName = file_path + str(process_idx) + ".txt"
+    filePred = _parse_results(fileName)
+    skipFilePred = _parse_results(skipFileName)
+    
     return _cal_F1(filePred, skipFilePred)

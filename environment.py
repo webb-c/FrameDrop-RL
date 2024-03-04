@@ -12,7 +12,7 @@ import win32pipe, win32file
 from typing import Tuple, List, Union, Dict
 from utils.get_state import cluster_pred, cluster_load, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
-from utils.cal_F1 import get_F1
+from utils.cal_F1 import get_F1_with_idx
 
 ARRIVAL_MAX = 1.0
 
@@ -438,6 +438,8 @@ class Environment_withoutNET():
         self.V = conf['V']
         self.debug_mode = conf['debug_mode']
         
+        self.target_f1 = conf['target_f1']
+        
         self.radius = conf['radius']
         self.state_num = conf['state_num']
         self.action_dim = conf['action_dim']
@@ -619,7 +621,7 @@ class Environment_withoutNET():
         
         if self.important_method[0] == '0':
             for f in range(self.action_dim) :
-                reg_list.append(reg_func(self.obj_num_list[ std_idx : self.window+1 ]))
+                reg_list.append(reg_func(self.obj_num_list[ std_idx : std_idx+self.window+1 ]))
         
         elif self.important_method[0] == '1':
             for f in range(self.action_dim) :
@@ -648,16 +650,55 @@ class Environment_withoutNET():
         """
         important_list = self.__cal_important()
         s, a, s_prime = self.trans_list
-        plusdiv = len(important_list[a+1:])
-        minusdiv = len(important_list[:a+1]) 
-        if plusdiv == 0 :
-            plusdiv = 1
-        if  minusdiv == 0:
-            minusdiv = 1
-        r = (sum(important_list[a+1:])/plusdiv) - (sum(important_list[:a+1])/minusdiv) 
+        
+        if self.reward_method[1] == '0':
+            plus_beta = 1 
+            minus_beta = 1
+
+        elif self.reward_method[1] == '1':
+            plus_beta = 1
+            minus_beta = self.beta
+
+        elif self.reward_method[1] == '2':
+            # beta must be (0, 1)
+            plus_beta = 1 - self.beta
+            minus_beta = self.beta
+        
+        elif self.reward_method[1] == '3':
+            # beta must be integer and in (0, action_dim) & using reward_method 1
+            plus_beta = self.action_dim - self.beta
+            minus_beta = self.beta
+        
+        
+        if self.reward_method[0] == '0':
+            plusdiv = len(important_list[a+1:])
+            minusdiv = len(important_list[:a+1]) 
+            if plusdiv == 0 :
+                plusdiv = 1
+            if  minusdiv == 0:
+                minusdiv = 1
+            r = (plus_beta*sum(important_list[a+1:])/plusdiv) - (minus_beta*sum(important_list[:a+1])/minusdiv) 
+        
+        if self.reward_method[0] == '1':
+            r = (plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1])) / self.action_dim
+        
+        if self.reward_method[0] == '2':
+            last_idx = self.idx - self.action_dim-1
+            process_idx = self.idx - self.action_dim+a+1
+            f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
+            
+            if f1 < self.target_f1 :
+                minusdiv = len(important_list[:a+1])
+                if minusdiv == 0: minusdiv = 1
+                r = minus_beta * sum(important_list[:a+1])/minusdiv
+            else :
+                plusdiv = len(important_list[a+1:])
+                if plusdiv == 0: plusdiv = 1
+                r = plus_beta * sum(important_list[a+1:])/plusdiv
         
         self.trans_list.append(r)
         self.reward_sum += r
+        
         if self.show_log :
             self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}".format(s[0], a, s_prime[0], r))
         

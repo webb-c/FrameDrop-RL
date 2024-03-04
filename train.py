@@ -69,7 +69,7 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[str, bool, int, floa
     """
     root_log = "./results/logs/train/"
     root_save = "./models/"
-    skip_list = ['learn_method', 'pipe_num', 'fps', 'episode_num']
+    skip_list = ['learn_method', 'pipe_num', 'fps', 'episode_num', 'is_masking', 'V', 'debug_mode']
     name = start_time
     if default_conf is None:
         for arg, value in conf.items():
@@ -210,6 +210,7 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                 agent.decrease_eps()
             # logging
             if not conf["debug_mode"]:
+                writer.add_scalar("Reward/all", env.reward_sum, epi)
                 writer.add_scalar("Reward/"+conf['reward_method'], env.reward_sum, epi)
                 writer.add_scalar("Network/send_a(t)", env.sum_a, epi)
                 if conf['omnet_mode']:
