@@ -15,3 +15,8 @@ results/*
 
 .vscode/
 config.csv
+
+*.csv
+*.sh
+omnet_tester.ipynb
+omnet_multi_tester.py
