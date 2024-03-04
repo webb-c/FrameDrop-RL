@@ -49,7 +49,7 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
         parser.add_argument("-sb", "--start_buffer_size", type=int, default=1000, help="start train buffer size")
         parser.add_argument("-sampling", "--sampling_num", type=int, default=500, help="Q-learning update num")
         parser.add_argument("-buff", "--buffer_size", type=int, default=20000, help="Replay buffer size")
-        parser.add_argument("-lr", "--learning_rate", type=int, default=0.05, help="setting learning rate")
+        parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
     
     elif args.learn_method == 'PPO':
         parser.add_argument("-l", "--lmbda", type=float, default=0.9, help="hyperparameter lambda for cal GAE")
@@ -60,7 +60,7 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
         parser.add_argument("-s", "--state_dim", type=int, default=2, help="state vector dimension")
         parser.add_argument("-a", "--action_dim", type=int, default=30, help="number of action (range)")
         parser.add_argument("-buff", "--buffer_size", type=int, default=10, help="PPO rollout buffer size")
-        parser.add_argument("-lr", "--learning_rate", type=int, default=0.0003, help="setting learning rate")
+        parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="setting learning rate")
     else:
         raise ValueError("learn_method is must be Q or PPO.")
     
