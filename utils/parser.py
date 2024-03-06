@@ -15,7 +15,7 @@ def parse_common_args() :
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
     
     ### NOTE THAT!!! ###
-    parser.add_argument("-reward", "--reward_method", type=str, default="00", help="using which reward function")
+    parser.add_argument("-reward", "--reward_method", type=str, default="000", help="using which reward function")
     parser.add_argument("-important", "--important_method", type=str, default="00", help="using which important score")
     parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
     parser.add_argument("-w", "--window", type=int, default=30, help="used to calculate important score")

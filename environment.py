@@ -650,7 +650,7 @@ class Environment_withoutNET():
         
         elif self.important_method[0] == '1':
             for f in range(self.action_dim) :
-                gap = (self.window - 1)//2
+                gap = int((self.window - 1)//2)
                 cur_idx = std_idx + f
                 reg_list.append(reg_func(self.obj_num_list[ cur_idx-gap : cur_idx+gap+1 ]))
         
@@ -722,7 +722,7 @@ class Environment_withoutNET():
                 elif self.reward_method[2] == '1':
                     minusdiv = 1
 
-                r = minus_beta * sum(important_list[:a+1])/minusdiv
+                r = -1 * minus_beta * sum(important_list[:a+1])/minusdiv
                 
             else :
                 if self.reward_method[2] == '0':
