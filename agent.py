@@ -51,7 +51,7 @@ class Agent():
             int: action
         """
         action = 0
-        if self.isFirst and require_skip == self.fps :
+        if self.isFirst and require_skip == self.action_dim :
             require_skip -= 1
             self.isFirst = False
         
@@ -153,6 +153,6 @@ class Agent():
         """현재 agent의 qtable을 command line에 출력합니다.
         """
         for s in range(self.state_num) :
-            for a in range(self.fps+1) :
+            for a in range(self.action_dim+1) :
                 print(round(self.qtable[s][a], 2), end="   ")
             print()

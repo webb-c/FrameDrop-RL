@@ -27,6 +27,7 @@ from agent import Agent
 from agent_ppo import PPOAgent
 from environment import Environment, Environment_withoutNET
 import datetime
+import time
 from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train, cluster_init
 from utils.cal_quality import get_FFT, get_MSE
@@ -187,12 +188,13 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
         agent = Agent(conf, run=False)
         rand = True
         print("train start !")
-        for epi in tqdm(range(conf['episode_num'])):       
+        for epi in tqdm(range(conf['episode_num'])):
             done = False
             show_log = False
             if epi == 0 or (epi % 50) == 0 or epi == conf['episode_num']-1 :
                 show_log = True
             s = env.reset(show_log=show_log)
+            # start_time = time.time()     
             while not done:
                 if conf['omnet_mode']:
                     require_skip = conf['fps'] - env.target_A
@@ -208,6 +210,12 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                     trans = env.buffer.get_data()
                     agent.update_qtable(trans)
                 agent.decrease_eps()
+
+                # for _ in range(conf["sampling_num"]):  # # of sampling count
+                #     trans = env.buffer.get_data()
+                #     agent.update_qtable(trans)
+                # agent.decrease_eps()
+                
             # logging
             if not conf["debug_mode"]:
                 writer.add_scalar("Reward/all", env.reward_sum, epi)
@@ -224,6 +232,10 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             if conf['omnet_mode']:
                 env.omnet.get_omnet_message()
                 env.omnet.send_omnet_message("finish")
+            # end_time  = time.time()
+            
+            # print("time: {:.2f}s".format(end_time - start_time))
+            
     
     #TODO:
     elif conf['learn_method'] == "PPO" :

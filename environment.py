@@ -62,7 +62,8 @@ class ReplayBuffer():
 class VideoProcessor():
     """영상을 프레임단위로 읽어들이거나 내보내기 위한 관리자
     """
-    def __init__(self, video_path: str, fps: int, action_dim: int, output_path: str=None, f1_score: bool=True, write:bool=False) :
+    #TODO: img option
+    def __init__(self, video_path: str, fps: int, action_dim: int, output_path: str=None, f1_score: bool=True, write:bool=False, img:bool=False) :
         """init
         
         Args:
@@ -72,6 +73,7 @@ class VideoProcessor():
             f1_score: f1_score 테스트를 위한 영상인가?
             write: 처리된 영상을 생성할 것인가?
         """
+        self.img = img
         self.video_path = video_path
         self.output_path = output_path
         self.fps = fps
@@ -81,18 +83,39 @@ class VideoProcessor():
         self.cap = cv2.VideoCapture(self.video_path)
         self.processed_frames = []
         self.num_all, self.num_processed = 0, 0
+        self.frame_list = []
+        
+        if self.img:            
+            while True:
+                ret, f = self.cap.read()
+                if not ret:
+                    break
+                self.frame_list.append(f)
+            
+            self.frame_num = len(self.frame_list)
+            self.cap.release()
     
     
     def reset(self):
         """학습에 반복적으로 사용하기 위해 videocapture를 초기화한다.
         """
-        self.cap.release()
-        self.cap = cv2.VideoCapture(self.video_path)
-        self.processed_frames = []
-        _, f_init = self.cap.read()
+        if self.img:
+            print(self.frame_num)
+            f_init = self.frame_list[0]
+        else:
+            self.cap.release()
+            self.cap = cv2.VideoCapture(self.video_path)
+            _, f_init = self.cap.read()
+        
         self.prev_frame, self.cur_frame = f_init, f_init
         self.idx = 0
         self.num_all, self.num_processed = 0, 0
+        
+        if self.write:
+            frame_shape = f_init.shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0]))
+            self.out.write(f_init)
     
     
     def read_video(self, skip:int) -> bool:
@@ -106,46 +129,39 @@ class VideoProcessor():
         """
         skip_frame = self.prev_frame
         for _ in range(skip):
-            if self.f1_score and self.write:
-                self.processed_frames.append(skip_frame)
-
             self.prev_frame = self.cur_frame
+            
             ret, self.cur_frame = self.cap.read()
+            if not ret :
+                if self.write:
+                    self.out.release()
+                return False
+            
+            if self.f1_score and self.write:
+                self.out.write(skip_frame)
+
             self.idx += 1
             self.num_all += 1
-            if not ret:
-                return False
+
         
         for _ in range(self.action_dim - skip):
-            if self.write:
-                self.processed_frames.append(self.cur_frame)
-            
             self.prev_frame = self.cur_frame
+            
             ret, self.cur_frame = self.cap.read()
+            if not ret : 
+                if self.write:
+                    self.out.release()
+                return False
+            
+            if self.write:
+                self.out.write(self.cur_frame)
+            
             self.idx += 1
             self.num_all += 1
             self.num_processed += 1
-            if not ret:
-                return False
 
+            
         return True
-
-
-    def write_video(self) -> bool:
-        """저장한 processed_frame들을 사용하여 영상으로 내보낸다.
-
-        Returns:
-            bool: 영상 저장이 성공적으로 이루어졌는가?
-        """
-        frame_shape = self.processed_frames[0].shape[:2]
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0]))
-        for frame in self.processed_frames:
-            out.write(frame)
-
-        out.release()
-        
-        return os.path.exists(self.output_path)
     
     
     def get_frame(self) -> Tuple[np.array, np.array, int]:
@@ -536,12 +552,12 @@ class Environment_withoutNET():
         if not ret:
             done = True
             r = 0
-            if self.run:
-                create = self.video_processor.write_video()
-                if create:
-                    print("Writing the video has successfully concluded.")
-                else:
-                    print("Writing the video ended abnormally.")
+            # if self.run:
+            #     create = self.video_processor.write_video()
+            #     if create:
+            #         print("Writing the video has successfully concluded.")
+            #     else:
+            #         print("Writing the video ended abnormally.")
             
             return self.state, r, done
         
@@ -601,12 +617,21 @@ class Environment_withoutNET():
         std_idx = self.idx - self.action_dim #self.idx 다음 frame을 의미하므로 ㅇㅇ 
         
         def max_func(lst):
+            if len(lst) == 0:
+                return 0
+            
             return max(lst)
         
         def min_func(lst):
+            if len(lst) == 0:
+                return 0
+            
             return min(lst)
         
         def avg_func(lst):
+            if len(lst) == 0:
+                return 0
+
             return sum(lst) / len(lst)
         
         if self.important_method[1] == '0':
@@ -695,6 +720,16 @@ class Environment_withoutNET():
                 plusdiv = len(important_list[a+1:])
                 if plusdiv == 0: plusdiv = 1
                 r = plus_beta * sum(important_list[a+1:])/plusdiv
+        
+        if self.reward_method[0] == '3':
+            last_idx = self.idx - self.action_dim-1
+            process_idx = self.idx - self.action_dim+a+1
+            f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
+            
+            if f1 < self.target_f1 :
+                r = minus_beta * sum(important_list[:a+1])
+            else :
+                r = plus_beta * sum(important_list[a+1:])
         
         self.trans_list.append(r)
         self.reward_sum += r

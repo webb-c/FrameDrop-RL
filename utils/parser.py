@@ -38,17 +38,17 @@ def parse_common_args() :
 def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Union[str, bool, int, float]]]:
     args, parser = parse_common_args() 
     
-    parser.add_argument("-episode", "--episode_num", type=int, default=300, help="number of train episode")
+    parser.add_argument("-episode", "--episode_num", type=int, default=200, help="number of train episode")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
     
     #TODO 
     if args.learn_method == 'Q':
         parser.add_argument("-ei", "--eps_init", type=float, default=1.0, help="epsilon init value")
-        parser.add_argument("-ed", "--eps_dec", type=float, default=0.005, help="epsilon decrese value")
+        parser.add_argument("-ed", "--eps_dec", type=float, default=0.05, help="epsilon decrese value") #change 0.005 -> 0.01
         parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
-        parser.add_argument("-sb", "--start_buffer_size", type=int, default=1000, help="start train buffer size")
-        parser.add_argument("-sampling", "--sampling_num", type=int, default=500, help="Q-learning update num")
-        parser.add_argument("-buff", "--buffer_size", type=int, default=20000, help="Replay buffer size")
+        parser.add_argument("-sb", "--start_buffer_size", type=int, default=3000, help="start train buffer size")
+        parser.add_argument("-samp", "--sampling_num", type=int, default=1000, help="Q-learning update num")  #change 500 -> 1000
+        parser.add_argument("-buff", "--buffer_size", type=int, default=30000, help="Replay buffer size")    #change 20000 -> 30000
         parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
     
     elif args.learn_method == 'PPO':
@@ -81,6 +81,9 @@ def parse_test_args() :
     parser.add_argument("-out", "--output_path", type=str, default=None, help="output video Path")
     parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
     parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
+    parser.add_argument("-r", "--radius", type=int, default=60, help="used to calculate blurring score")
+    parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
+    parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
     parser.add_argument("-t", "--target_f1", type=float, default=0.9, help="target F1 scores")
     

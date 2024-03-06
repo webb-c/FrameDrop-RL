@@ -66,6 +66,7 @@ def test(conf, start_time, writer):
     
     step = 0
     while not done:
+        print(step, env.video_processor.idx)
         if conf['is_masking'] :
             require_skip = conf['fps'] - env.target_A
         else :
