@@ -705,7 +705,10 @@ class Environment_withoutNET():
             r = (plus_beta*sum(important_list[a+1:])/plusdiv) - (minus_beta*sum(important_list[:a+1])/minusdiv) 
         
         if self.reward_method[0] == '1':
-            r = (plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1])) / self.action_dim
+            if self.reward_method[2] == '0':
+                r = (plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1])) / self.action_dim
+            elif self.reward_method[2] == '1':
+                r = (plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1]))
         
         if self.reward_method[0] == '2':
             last_idx = self.idx - self.action_dim-1
@@ -713,23 +716,22 @@ class Environment_withoutNET():
             f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
             
             if f1 < self.target_f1 :
-                minusdiv = len(important_list[:a+1])
-                if minusdiv == 0: minusdiv = 1
+                if self.reward_method[2] == '0':
+                    minusdiv = len(important_list[:a+1])
+                    if minusdiv == 0: minusdiv = 1
+                elif self.reward_method[2] == '1':
+                    minusdiv = 1
+
                 r = minus_beta * sum(important_list[:a+1])/minusdiv
+                
             else :
-                plusdiv = len(important_list[a+1:])
-                if plusdiv == 0: plusdiv = 1
+                if self.reward_method[2] == '0':
+                    plusdiv = len(important_list[a+1:])
+                    if plusdiv == 0: plusdiv = 1
+                elif self.reward_method[2] == '1':
+                    plusdiv = 1
                 r = plus_beta * sum(important_list[a+1:])/plusdiv
-        
-        if self.reward_method[0] == '3':
-            last_idx = self.idx - self.action_dim-1
-            process_idx = self.idx - self.action_dim+a+1
-            f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
-            
-            if f1 < self.target_f1 :
-                r = minus_beta * sum(important_list[:a+1])
-            else :
-                r = plus_beta * sum(important_list[a+1:])
+
         
         self.trans_list.append(r)
         self.reward_sum += r
