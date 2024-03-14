@@ -689,6 +689,7 @@ class Environment():
                 cur_idx = std_idx + f
                 reg_list.append(reg_func(self.obj_num_list[ cur_idx-gap : cur_idx+gap+1 ]))
         
+        #TODO: F1 score importance
         elif self.important_method[0] == '2':
             last_idx = self.idx - self.action_dim-1
             if last_idx < 1:
@@ -740,7 +741,7 @@ class Environment():
         plus_beta = 1 - self.beta
         minus_beta = self.beta
         
-        if self.reward_method[0] == '0':
+        if self.reward_method == '0':
             plusdiv = len(important_list[a+1:])
             minusdiv = len(important_list[:a+1]) 
             if plusdiv == 0 :
@@ -749,20 +750,19 @@ class Environment():
                 minusdiv = 1
             r = (plus_beta*sum(important_list[a+1:])/plusdiv) - (minus_beta*sum(important_list[:a+1])/minusdiv) 
         
-        if self.reward_method[0] == '2':
+        if self.reward_method == '2':
             last_idx = self.idx - self.action_dim-1
             process_idx = self.idx - self.action_dim+a+1
             f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
             #print(f1)
-            if f1 < self.target_f1 :
+            
+            if f1 < self.threshold :
                 minusdiv = len(important_list[:a+1])
                 if minusdiv == 0: minusdiv = 1
                 r = -1 * minus_beta * sum(important_list[:a+1])/minusdiv
             else :
                 plusdiv = len(important_list[a+1:])
                 if plusdiv == 0: plusdiv = 1
-
-                # r = a * plus_beta * sum(important_list[a+1:])/plusdiv
                 r = a * plus_beta * sum(important_list[a+1:])/plusdiv
 
         

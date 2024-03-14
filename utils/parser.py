@@ -14,7 +14,7 @@ def parse_common_args() :
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
 
-    parser.add_argument("-reward", "--reward_method", type=str, default="00", help="using which reward function")
+    parser.add_argument("-reward", "--reward_method", type=str, default="0", help="using which reward function")
     parser.add_argument("-important", "--important_method", type=str, default="00", help="using which important score")
     parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
     parser.add_argument("-w", "--window", type=int, default=30, help="used to calculate important score")
@@ -22,7 +22,7 @@ def parse_common_args() :
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
-    #TODO: hyperparameter: threshold, V
+    #TODO: hyperparameter: action, radius, beta, threshold, V
     parser.add_argument("-t", "--threshold", type=float, default=0.9, help="target value for reward +-")
     
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
@@ -35,6 +35,7 @@ def parse_common_args() :
     parser.add_argument("-ed", "--eps_dec", type=float, default=0.01, help="epsilon decrese value") #change 0.005 -> 0.01
     parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
+    parser.add_argument("-episode", "--episode_num", type=int, default=200, help="number of train episode")
     
     args, unknown = parser.parse_known_args()
     return args, parser
@@ -42,8 +43,6 @@ def parse_common_args() :
 
 def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[str, Union[str, bool, int, float]]]:
     args, parser = parse_common_args() 
-    
-    parser.add_argument("-episode", "--episode_num", type=int, default=200, help="number of train episode")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
     
     if args.learn_method == 'Q':
@@ -51,7 +50,6 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
         parser.add_argument("-sb", "--start_buffer_size", type=int, default=3000, help="start train buffer size")
         parser.add_argument("-samp", "--sampling_num", type=int, default=1000, help="Q-learning update num")  #change 500 -> 1000
         parser.add_argument("-buff", "--buffer_size", type=int, default=30000, help="Replay buffer size")    #change 20000 -> 30000
-        parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
     
     elif args.learn_method == 'PPO':
         parser.add_argument("-l", "--lmbda", type=float, default=0.9, help="hyperparameter lambda for cal GAE")
@@ -87,7 +85,7 @@ def parse_test_args() :
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
-    parser.add_argument("-t", "--target_f1", type=float, default=0.9, help="target F1 scores")
+    parser.add_argument("-t", "--threshold", type=float, default=0.9, help="target value for reward +-")
     
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     # model_1: 100000000 | SLN: 50 | YOLO: 

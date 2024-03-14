@@ -25,7 +25,7 @@ import numpy as np
 from tqdm import tqdm
 from agent import Agent
 from agent_ppo import PPOAgent
-from environment import Environment, Environment_withoutNET
+from environment import Environment
 import datetime
 import time
 from torch.utils.tensorboard import SummaryWriter

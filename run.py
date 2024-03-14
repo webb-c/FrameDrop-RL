@@ -42,7 +42,7 @@ from typing import Tuple, Union, Dict
 from torch.utils.tensorboard import SummaryWriter
 from agent import Agent
 from agent_ppo import PPOAgent
-from environment import Environment, Environment_withoutNET
+from environment import Environment
 from utils.parser import parse_test_args, parse_test_name, add_args
 from utils.yolov5.detect import inference
 from utils.cal_F1 import get_F1
@@ -52,12 +52,8 @@ from utils.util import save_parameters_to_csv
 def test(conf, start_time, writer):
     if not conf['omnet_mode'] and conf['is_masking'] :
         assert True, "if you want masking mode, omnet mode must be set to True"
-    
-    if conf['omnet_mode']:
-        env = Environment(conf, run=True)
-    else:
-        env = Environment_withoutNET(conf, run=True)
 
+    env = Environment(conf, run=True)
     agent = Agent(conf, run=True)
     done = False
     print("Ready ...")
@@ -66,7 +62,7 @@ def test(conf, start_time, writer):
     
     step = 0
     while not done:
-        #print(step, env.video_processor.idx)
+        print(step, env.video_processor.idx)
         if conf['is_masking'] :
             require_skip = conf['fps'] - env.target_A
         else :
@@ -120,7 +116,7 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         writer = None
     prnt(conf)
     
-    a, A, finish_time, rounded_fraction = test(conf, start_time, writer)
+    a, A, finish_time, rounded_fraction, conf = test(conf, start_time, writer)
     conf['fraction'] = rounded_fraction
     
     if conf['f1_score'] :
