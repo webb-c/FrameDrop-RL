@@ -178,13 +178,9 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     conf['detection_path'] = detection_path
     conf['FFT_path'] = FFT_path
     prnt(conf)
-    
-    if conf['omnet_mode']:
-        env = Environment(conf)
-    else:
-        env = Environment_withoutNET(conf)
-    
+
     if conf['learn_method'] == "Q" :
+        env = Environment(conf)
         agent = Agent(conf, run=False)
         rand = True
         print("train start !")
@@ -197,7 +193,7 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             # start_time = time.time()     
             while not done:
                 if conf['omnet_mode']:
-                    require_skip = conf['fps'] - env.target_A
+                    require_skip = conf['action_dim'] - env.target_A
                 else :
                     require_skip = 0
                 a = agent.get_action(s, require_skip, rand)
@@ -210,11 +206,6 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                     trans = env.buffer.get_data()
                     agent.update_qtable(trans)
                 agent.decrease_eps()
-
-                # for _ in range(conf["sampling_num"]):  # # of sampling count
-                #     trans = env.buffer.get_data()
-                #     agent.update_qtable(trans)
-                # agent.decrease_eps()
                 
             # logging
             if not conf["debug_mode"]:
@@ -281,14 +272,17 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             env.omnet.send_omnet_message("finish")
     
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    
     if conf['omnet_mode']: 
         env.omnet.close_pipe()
+    
     ret = agent.save_model(save_path)
     if not ret:
         print("Saving model ended abnormally")
     
     print("Training Finish with...")
     prnt(conf)
+    
     print("\n✱ start time :\t", start_time)
     print("✱ finish time:\t", finish_time)
     

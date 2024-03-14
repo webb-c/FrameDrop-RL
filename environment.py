@@ -62,7 +62,6 @@ class ReplayBuffer():
 class VideoProcessor():
     """영상을 프레임단위로 읽어들이거나 내보내기 위한 관리자
     """
-    #TODO: img option
     def __init__(self, video_path: str, fps: int, action_dim: int, output_path: str=None, f1_score: bool=True, write:bool=False, img:bool=False) :
         """init
         
@@ -172,9 +171,7 @@ class VideoProcessor():
         """
         return self.prev_frame, self.cur_frame, self.idx
 
-
-#TODO: reward parameter 추가
-class Environment():
+class Environment_withOMNET():
     """강화학습 agent와 상호작용하는 environment
     """
     def __init__(self, conf:Dict[str, Union[str, bool, int, float]], run:bool=False):
@@ -231,9 +228,9 @@ class Environment():
             utils.get_state.cluster_pred: train, Q-learning에서 state를 구하기 위해 사용한다.
         """
         self.video_processor.reset()
-        self.reward_sum, self.sum_A, self.sum_a = 0, 0, 0
+        #self.reward_sum, self.sum_A, self.sum_a = 0, 0, 0
         self.show_log = show_log
-        self.prev_A, self.target_A = self.fps, self.fps
+        #self.prev_A, self.target_A = self.fps, self.fps
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
         
         if self.run :
@@ -299,33 +296,33 @@ class Environment():
             
             return self.state, r, done
         
-        for a in range(self.fps+1):
-            if a == action :
-                self.omnet.get_omnet_message()
-                self.omnet.send_omnet_message("action")
-                self.omnet.get_omnet_message()
-                self.omnet.send_omnet_message(str((action+1)/self.fps))
-            elif a > action : 
-                self.omnet.get_omnet_message()
-                self.omnet.send_omnet_message("action")
-                self.omnet.get_omnet_message()
-                self.omnet.send_omnet_message(str((1)/self.fps))
+        # for a in range(self.fps+1):
+        #    if a == action :
+        #        self.omnet.get_omnet_message()
+        #        self.omnet.send_omnet_message("action")
+        #        self.omnet.get_omnet_message()
+        #        self.omnet.send_omnet_message(str((action+1)/self.fps))
+        #    elif a > action : 
+        #        self.omnet.get_omnet_message()
+        #        self.omnet.send_omnet_message("action")
+        #        self.omnet.get_omnet_message()
+        #        self.omnet.send_omnet_message(str((1)/self.fps))
         
         
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
 
-        self.omnet.get_omnet_message()
-        self.omnet.send_omnet_message("reward") 
-        path_cost = float(self.omnet.get_omnet_message())
-        self.omnet.send_omnet_message("ACK")
+        #self.omnet.get_omnet_message()
+        #self.omnet.send_omnet_message("reward") 
+        #path_cost = float(self.omnet.get_omnet_message())
+        #self.omnet.send_omnet_message("ACK")
         
-        ratio_A = ARRIVAL_MAX if path_cost == 0 else min(ARRIVAL_MAX, self.V / path_cost)
-        new_A = math.floor(ratio_A*(self.fps))
-        if self.debug_mode:
-            print("scaling cost using V:", ratio_A)
-            print("arrival rate using fps:", new_A)
+        #ratio_A = ARRIVAL_MAX if path_cost == 0 else min(ARRIVAL_MAX, self.V / path_cost)
+        #new_A = math.floor(ratio_A*(self.fps))
+        #if self.debug_mode:
+        #    print("scaling cost using V:", ratio_A)
+        #    print("arrival rate using fps:", new_A)
         
-        r = self.__triggered_by_guide(new_A, action)
+        # r = self.__triggered_by_guide(new_A, action)
         
         return self.state, r, done
 
@@ -349,12 +346,12 @@ class Environment():
         r = 0
         self.send_A = self.fps - action
         self.sum_a += self.send_A
-        self.sum_A += self.target_A
-        self.trans_list.append(self.fps-self.target_A)
+        #self.sum_A += self.target_A
+        #self.trans_list.append(self.fps-self.target_A)
         self.trans_list.append(self.state)
         self.trans_list.append(action)
-        self.prev_A = self.target_A
-        self.target_A = new_A
+        #self.prev_A = self.target_A
+        #self.target_A = new_A
         
         if self.run :
             self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame)]
@@ -407,7 +404,7 @@ class Environment():
 
         """
         important_list = self.__cal_important()
-        _, s, a, s_prime = self.trans_list
+        # _, s, a, s_prime = self.trans_list
         plusdiv = len(important_list[a+1:])
         minusdiv = len(important_list[:a+1]) 
         if plusdiv == 0 :
@@ -418,8 +415,8 @@ class Environment():
         
         self.trans_list.append(r)
         self.reward_sum += r
-        if self.show_log :
-            self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}\nA(t): {:2d}\tA(t+1): {:2d}".format(s[0], a, s_prime[0], r, self.prev_A, self.target_A))
+        # if self.show_log :
+        #    self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}\nA(t): {:2d}\tA(t+1): {:2d}".format(s[0], a, s_prime[0], r, self.prev_A, self.target_A))
             
         return r
 
@@ -432,7 +429,7 @@ class Environment():
         return
 
 
-class Environment_withoutNET():
+class Environment():
     """강화학습 agent와 상호작용하는 environment
     """
     def __init__(self, conf:Dict[str, Union[str, bool, int, float]], run:bool=False):
@@ -454,12 +451,19 @@ class Environment_withoutNET():
         self.V = conf['V']
         self.debug_mode = conf['debug_mode']
         
-        self.target_f1 = conf['target_f1']
+        self.threshold = conf['threshold']
         
         self.radius = conf['radius']
         self.state_num = conf['state_num']
         self.action_dim = conf['action_dim']
         
+        self.omnet_mode = conf['omnet_mode']
+        if self.omnet_mode:
+            if conf['pipe_num'] == 1:
+                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000, self.debug_mode)
+            else :
+                self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug_mode)
+                
         if self.run:
             self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_score'], write=True)
         else:
@@ -495,6 +499,9 @@ class Environment_withoutNET():
         """
         self.video_processor.reset()
         self.reward_sum, self.sum_a = 0, 0
+        if self.omnet_mode:
+            self.sum_A = 0
+            self.prev_A, self.target_A = self.action_dim, self.action_dim
         self.show_log = show_log
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
         
@@ -550,27 +557,44 @@ class Environment_withoutNET():
         done = False
         ret = self.video_processor.read_video(skip=action)
         if not ret:
-            done = True
-            r = 0
-            # if self.run:
-            #     create = self.video_processor.write_video()
-            #     if create:
-            #         print("Writing the video has successfully concluded.")
-            #     else:
-            #         print("Writing the video ended abnormally.")
+            return self.state, 0, True
+        
+        new_A = -1
+        if self.omnet_mode:
+            for a in range(self.action_dim+1):
+                if a == action :
+                    self.omnet.get_omnet_message()
+                    self.omnet.send_omnet_message("action")
+                    self.omnet.get_omnet_message()
+                    self.omnet.send_omnet_message(str((action+1)/self.action_dim))
+                elif a > action : 
+                    self.omnet.get_omnet_message()
+                    self.omnet.send_omnet_message("action")
+                    self.omnet.get_omnet_message()
+                    self.omnet.send_omnet_message(str((1)/self.action_dim))
             
-            return self.state, r, done
+            self.omnet.get_omnet_message()
+            self.omnet.send_omnet_message("reward") 
+            path_cost = float(self.omnet.get_omnet_message())
+            self.omnet.send_omnet_message("ACK")
+            
+            ratio_A = ARRIVAL_MAX if path_cost == 0 else min(ARRIVAL_MAX, self.V / path_cost)
+            new_A = math.floor(ratio_A*(self.action_dim))
+            if self.debug_mode:
+                print("scaling cost using V:", ratio_A)
+                print("arrival rate using fps:", new_A)
         
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
-        r = self.__triggered_by_guide(action)
+        r = self.__triggered_by_guide(new_A, action)
         
         return self.state, r, done
 
 
-    def __triggered_by_guide(self, action:int) -> float:
-        """action에 대한 reward를 계산합니다.
+    def __triggered_by_guide(self, new_A:int, action:int) -> float:
+        """Lyapunov based guide가 전달되었을 때, 갱신하고 reward를 계산합니다.
 
         Args:
+            new_A (int): 새로운 lyapunov based guide
             action (int): 수행하고자 했던 action
 
         Returns:
@@ -583,6 +607,11 @@ class Environment_withoutNET():
             
         """
         r = 0
+        if self.omnet_mode:
+            self.sum_A += self.target_A
+            self.trans_list.append(self.action_dim-self.target_A)
+            self.prev_A = self.target_A
+            self.target_A = new_A
         self.send_A = self.action_dim - action
         self.sum_a += self.send_A
         self.trans_list.append(self.state)
@@ -634,6 +663,9 @@ class Environment_withoutNET():
 
             return sum(lst) / len(lst)
         
+        def identity_func(lst):
+            return lst
+
         if self.important_method[1] == '0':
             reg_func = max_func
             
@@ -642,6 +674,9 @@ class Environment_withoutNET():
             
         elif self.important_method[1] == '2':
             reg_func = avg_func
+        
+        elif self.important_method[1] == '3':
+            reg_func = identity_func
         
         
         if self.important_method[0] == '0':
@@ -654,11 +689,34 @@ class Environment_withoutNET():
                 cur_idx = std_idx + f
                 reg_list.append(reg_func(self.obj_num_list[ cur_idx-gap : cur_idx+gap+1 ]))
         
+        elif self.important_method[0] == '2':
+            last_idx = self.idx - self.action_dim-1
+            if last_idx < 1:
+                last_idx = 1
+            obj_num_list = []
+            for f in range(self.action_dim) :
+                cur_idx = std_idx + f
+                if cur_idx < 1:
+                    cur_idx = 1
+                f1 = get_F1_with_idx(last_idx, cur_idx, self.video_processor.video_path)
+                obj_num_list.append(1 - f1)
+            
+            for f in range(self.action_dim) :
+                reg_list.append(reg_func(obj_num_list[0:self.window+1])) #window가 action_dim보다 작아야함
+            
+            for f in range(self.action_dim) :
+                cur_idx = std_idx + f
+                importance = (obj_num_list[f] / reg_list[f]) if reg_list[f] != 0 else 0
+                important_list.append(importance)
+                
+            return important_list
+        
 
         for f in range(self.action_dim) :
             cur_idx = std_idx + f
             importance = (self.obj_num_list[cur_idx] / reg_list[f]) if reg_list[f] != 0 else 0
             important_list.append(importance)
+        
         
         return important_list
 
@@ -674,26 +732,13 @@ class Environment_withoutNET():
 
         """
         important_list = self.__cal_important()
-        s, a, s_prime = self.trans_list
+        if self.omnet_mode:
+            _, s, a, s_prime = self.trans_list
+        else:
+            s, a, s_prime = self.trans_list
         
-        if self.reward_method[1] == '0':
-            plus_beta = 1 
-            minus_beta = 1
-
-        elif self.reward_method[1] == '1':
-            plus_beta = 1
-            minus_beta = self.beta
-
-        elif self.reward_method[1] == '2':
-            # beta must be (0, 1)
-            plus_beta = 1 - self.beta
-            minus_beta = self.beta
-        
-        elif self.reward_method[1] == '3':
-            # beta must be integer and in (0, action_dim) & using reward_method 1
-            plus_beta = self.action_dim - self.beta
-            minus_beta = self.beta
-        
+        plus_beta = 1 - self.beta
+        minus_beta = self.beta
         
         if self.reward_method[0] == '0':
             plusdiv = len(important_list[a+1:])
@@ -704,40 +749,31 @@ class Environment_withoutNET():
                 minusdiv = 1
             r = (plus_beta*sum(important_list[a+1:])/plusdiv) - (minus_beta*sum(important_list[:a+1])/minusdiv) 
         
-        if self.reward_method[0] == '1':
-            if self.reward_method[2] == '0':
-                r = (plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1])) / self.action_dim
-            elif self.reward_method[2] == '1':
-                r = (plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1]))
-        
         if self.reward_method[0] == '2':
             last_idx = self.idx - self.action_dim-1
             process_idx = self.idx - self.action_dim+a+1
             f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
-            
+            #print(f1)
             if f1 < self.target_f1 :
-                if self.reward_method[2] == '0':
-                    minusdiv = len(important_list[:a+1])
-                    if minusdiv == 0: minusdiv = 1
-                elif self.reward_method[2] == '1':
-                    minusdiv = 1
-
+                minusdiv = len(important_list[:a+1])
+                if minusdiv == 0: minusdiv = 1
                 r = -1 * minus_beta * sum(important_list[:a+1])/minusdiv
-                
             else :
-                if self.reward_method[2] == '0':
-                    plusdiv = len(important_list[a+1:])
-                    if plusdiv == 0: plusdiv = 1
-                elif self.reward_method[2] == '1':
-                    plusdiv = 1
-                r = plus_beta * sum(important_list[a+1:])/plusdiv
+                plusdiv = len(important_list[a+1:])
+                if plusdiv == 0: plusdiv = 1
+
+                # r = a * plus_beta * sum(important_list[a+1:])/plusdiv
+                r = a * plus_beta * sum(important_list[a+1:])/plusdiv
 
         
         self.trans_list.append(r)
         self.reward_sum += r
         
         if self.show_log :
-            self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}".format(s[0], a, s_prime[0], r))
+            if self.omnet_mode:
+                self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}\nA(t): {:2d}\tA(t+1): {:2d}".format(s[0], a, s_prime[0], r, self.prev_A, self.target_A))
+            else:
+                self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}".format(s[0], a, s_prime[0], r))
         
         return r
 

@@ -43,6 +43,9 @@ def _cal_F1(filePred, skipFilePred, threshold=0.5) :  # pred, labels
     if TP + FN == 0: recall = 0
     else: recall = TP /  (TP+FN)
     F1 = 2*(precision*recall) / (precision+recall) if (precision+recall) != 0 else 0
+    #NOTE: 확인필요
+    if F1 > 1:
+        F1 = 1
     return F1
 
 

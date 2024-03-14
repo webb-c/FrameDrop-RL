@@ -66,7 +66,7 @@ def test(conf, start_time, writer):
     
     step = 0
     while not done:
-        print(step, env.video_processor.idx)
+        #print(step, env.video_processor.idx)
         if conf['is_masking'] :
             require_skip = conf['fps'] - env.target_A
         else :
@@ -96,9 +96,6 @@ def test(conf, start_time, writer):
         if conf['omnet_mode']:
             print("A(t) list :", A_list)
         print("u(t) list :", u_list)
-
-    if not conf['debug_mode']:
-        save_parameters_to_csv(start_time, conf, train=False)
     
     fraction_value = env.video_processor.num_processed / env.video_processor.num_all 
     rounded_fraction = round(fraction_value, 4)
@@ -109,7 +106,7 @@ def test(conf, start_time, writer):
     A = 0
     if conf['omnet_mode']:
         A = env.sum_A
-    return env.sum_a, A, finish_time, rounded_fraction
+    return env.sum_a, A, finish_time, rounded_fraction, conf
 
 
 
@@ -124,7 +121,8 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     prnt(conf)
     
     a, A, finish_time, rounded_fraction = test(conf, start_time, writer)
-
+    conf['fraction'] = rounded_fraction
+    
     if conf['f1_score'] :
         root_detection =  "./data/detect/test/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
@@ -155,6 +153,7 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
             writer.add_scalar("F1_score/total", total_F1, 1)
             writer.add_scalar("F1_score/average", total_F1/len(origin_list), 1)
         
+        conf['f1_score'] = total_F1/len(origin_list)
     
     print("Testing Finish with...")
     prnt(conf)
@@ -172,7 +171,11 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         print("\n=====  F1 score =====")
         print("✲ total F1 score: ", total_F1)
         print("✲ average F1 score: ", total_F1/len(origin_list))
-        
+    
+    if not conf['debug_mode']:
+        save_parameters_to_csv(start_time, conf, train=False)
+        print("\nsaving config is finished.")
+    
     return True
 
 

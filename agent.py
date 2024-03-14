@@ -156,3 +156,8 @@ class Agent():
             for a in range(self.action_dim+1) :
                 print(round(self.qtable[s][a], 2), end="   ")
             print()
+
+    def is_converge(self):
+        """학습이 어느정도 수렴했는지를 확인하며, early stop을 수행합니다.
+        """
+        pass

@@ -13,23 +13,28 @@ def parse_common_args() :
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using masking?")
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
-    
-    ### NOTE THAT!!! ###
-    parser.add_argument("-reward", "--reward_method", type=str, default="000", help="using which reward function")
+
+    parser.add_argument("-reward", "--reward_method", type=str, default="00", help="using which reward function")
     parser.add_argument("-important", "--important_method", type=str, default="00", help="using which important score")
-    parser.add_argument("-b", "--beta", type=float, default=1.35, help="sensitive for number of objects")
+    parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
     parser.add_argument("-w", "--window", type=int, default=30, help="used to calculate important score")
     parser.add_argument("-r", "--radius", type=int, default=60, help="used to calculate blurring score")
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
-    parser.add_argument("-t", "--target_f1", type=float, default=0.9, help="target F1 scores")
+    #TODO: hyperparameter: threshold, V
+    parser.add_argument("-t", "--threshold", type=float, default=0.9, help="target value for reward +-")
     
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     parser.add_argument("-V", "--V", type=float, default=100000000, help="trade off parameter between stability & accuracy")
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="using debug tool?")
     parser.add_argument("-omnet", "--omnet_mode", type=str2bool, default=False, help="using omnet guide in RL run?")
+    
+    #MORE Exploitation
+    parser.add_argument("-ed", "--eps_dec", type=float, default=0.01, help="epsilon decrese value") #change 0.005 -> 0.01
+    parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
     
     args, unknown = parser.parse_known_args()
     return args, parser
@@ -41,11 +46,8 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
     parser.add_argument("-episode", "--episode_num", type=int, default=200, help="number of train episode")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help=" discount factor gamma")
     
-    #TODO 
     if args.learn_method == 'Q':
         parser.add_argument("-ei", "--eps_init", type=float, default=1.0, help="epsilon init value")
-        parser.add_argument("-ed", "--eps_dec", type=float, default=0.05, help="epsilon decrese value") #change 0.005 -> 0.01
-        parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
         parser.add_argument("-sb", "--start_buffer_size", type=int, default=3000, help="start train buffer size")
         parser.add_argument("-samp", "--sampling_num", type=int, default=1000, help="Q-learning update num")  #change 500 -> 1000
         parser.add_argument("-buff", "--buffer_size", type=int, default=30000, help="Replay buffer size")    #change 20000 -> 30000
@@ -152,6 +154,7 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + ".pkl")
     assert conf["output_path"] is not None, "output_path is None."
     output_name = re.split(r"[/\\]", conf['output_path'])[-1].split(".")[0]
-    log_path = os.path.join(root_log, start_time + "_" + output_name)
+    #log_path = os.path.join(root_log, start_time + "_" + output_name)
+    log_path = os.path.join(root_log, output_name)
     
     return conf, log_path
