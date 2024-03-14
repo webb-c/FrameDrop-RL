@@ -26,7 +26,7 @@ class ReplayBuffer():
         """init
         
         Args:
-            buffer_size (int): 버퍼에 저장가능한 총 transitino 개수
+            buffer_size (int): 버퍼에 저장가능한 총 transition 개수
         """
         self.buffer = collections.deque(maxlen=buffer_size)
     
@@ -51,7 +51,7 @@ class ReplayBuffer():
     
     
     def get_size(self) -> int:
-        """햔재 버퍼에 쌓인 데이터의 개수를 반환한다.
+        """현재 버퍼에 쌓인 데이터의 개수를 반환한다.
         
         Returns:
             int: length of buffer
@@ -96,7 +96,7 @@ class VideoProcessor():
     
     
     def reset(self):
-        """학습에 반복적으로 사용하기 위해 videocapture를 초기화한다.
+        """학습에 반복적으로 사용하기 위해 VideoCapture를 초기화한다.
         """
         if self.img:
             print(self.frame_num)
@@ -171,263 +171,6 @@ class VideoProcessor():
         """
         return self.prev_frame, self.cur_frame, self.idx
 
-class Environment_withOMNET():
-    """강화학습 agent와 상호작용하는 environment
-    """
-    def __init__(self, conf:Dict[str, Union[str, bool, int, float]], run:bool=False):
-        """init
-
-        Args:
-            conf (Dict[str, Union[bool, int, float]]): train/test setting
-            run (bool, optional): testing을 수행하는가?
-        
-        Calls:
-            self.__detect(): obj, fft load
-            utils.get_state.cluster_init(): cluster 초기화
-            utils.get_state.cluster_load(): cluster_path에서 불러옴
-            self.reset(): Env reset
-        """
-        self.run = run
-        self.fps = conf['fps']
-        self.learn_method = conf['learn_method']
-        self.V = conf['V']
-        self.debug_mode = conf['debug_mode']
-        
-        if conf['pipe_num'] == 1:
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl", 200000, self.debug_mode)
-        else :
-            self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug_mode)
-        
-        if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['output_path'], conf['f1_score'], write=True)
-        else:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'])
-            self.buffer = ReplayBuffer(conf['buffer_size'])
-            self.beta = conf['beta']
-            self.__detect(conf['detection_path'], conf['FFT_path'])
-        
-        if self.learn_method == "Q" :
-            self.model = cluster_init(conf['state_num'])
-            print("load cluster model in init...")
-            self.model = cluster_load(conf['cluster_path'])
-        
-        self.reset()
-
-    
-    def reset(self, show_log:bool=False) -> Union[int, List[float]]:
-        """Env reset: Arrival data, reward, idx, frame_reader, state 초기화 
-
-        Args:
-            show_log (bool, optional): command line에 이번 에피소드 전체의 transition을 출력할 것인가?
-
-        Returns:
-            Union[int, List[float, float]]: initial state를 반환한다.
-            
-        Calls:
-            utils.cal_quality.get_FFT(): run 모드일 때 FFT 계산을 위해 사용한다.
-            utils.get_state.cluster_pred: train, Q-learning에서 state를 구하기 위해 사용한다.
-        """
-        self.video_processor.reset()
-        #self.reward_sum, self.sum_A, self.sum_a = 0, 0, 0
-        self.show_log = show_log
-        #self.prev_A, self.target_A = self.fps, self.fps
-        self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
-        
-        if self.run :
-            self.origin_state = [0, get_FFT(self.cur_frame)]
-        else :
-            self.origin_state = [0, self.FFT_list[self.idx]]
-        
-        if self.learn_method == "Q" :
-            self.state = cluster_pred(self.origin_state, self.model)
-        elif self.learn_method == "PPO" :
-            self.state = self.origin_state
-        
-        self.trans_list = []
-        if self.show_log :   
-            self.logList = []
-            
-        return self.state
-
-
-    def __detect(self, detection_path: str, FFT_path: str):
-        """학습에 사용하는 영상에 해당되는 사전처리된 데이터 로드
-
-        Args:
-            detection_path (str): 검증된 detection_path 경로
-            FFT_path (str): 검증된 cluster_path
-        """
-        self.FFT_list = np.load(FFT_path)
-        label_list =  os.listdir(detection_path)
-        self.obj_num_list = []
-
-        for label in label_list :  # TODO 없던 물체 분간...?
-            label_path = detection_path+"/"+label
-            with open(label_path, 'r') as file :
-                lines = file.readlines()
-                self.obj_num_list.append(len(lines))
-
-
-    def step(self, action:int) -> Tuple[Union[int, List[float]], float, bool]:
-        """인자로 전달된 action을 수행하고, 행동에 대한 reward와 함께 next_state를 반환합니다..
-
-        Args:
-            action (int): 수행할 action [0, fps]
-
-        Returns:
-            Tuple[next_state, reward, done]
-        
-        Calls:
-            self.Communicator.get/sent_omnet_message: omnet 통신
-            __triggered_by_guideL Lyapunov based guide가 새로 들어왔을 때 변수 갱신, 리워드 계산을 위해 호출
-        """
-        #print("\naction:", action)
-        done = False
-        ret = self.video_processor.read_video(skip=action)
-        if not ret:
-            done = True
-            r = 0
-            if self.run:
-                create = self.video_processor.write_video()
-                if create:
-                    print("Writing the video has successfully concluded.")
-                else:
-                    print("Writing the video ended abnormally.")
-            
-            return self.state, r, done
-        
-        # for a in range(self.fps+1):
-        #    if a == action :
-        #        self.omnet.get_omnet_message()
-        #        self.omnet.send_omnet_message("action")
-        #        self.omnet.get_omnet_message()
-        #        self.omnet.send_omnet_message(str((action+1)/self.fps))
-        #    elif a > action : 
-        #        self.omnet.get_omnet_message()
-        #        self.omnet.send_omnet_message("action")
-        #        self.omnet.get_omnet_message()
-        #        self.omnet.send_omnet_message(str((1)/self.fps))
-        
-        
-        self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
-
-        #self.omnet.get_omnet_message()
-        #self.omnet.send_omnet_message("reward") 
-        #path_cost = float(self.omnet.get_omnet_message())
-        #self.omnet.send_omnet_message("ACK")
-        
-        #ratio_A = ARRIVAL_MAX if path_cost == 0 else min(ARRIVAL_MAX, self.V / path_cost)
-        #new_A = math.floor(ratio_A*(self.fps))
-        #if self.debug_mode:
-        #    print("scaling cost using V:", ratio_A)
-        #    print("arrival rate using fps:", new_A)
-        
-        # r = self.__triggered_by_guide(new_A, action)
-        
-        return self.state, r, done
-
-
-    def __triggered_by_guide(self, new_A:int, action:int) -> float:
-        """Lyapunov based guide가 전달되었을 때, 갱신하고 reward를 계산합니다.
-
-        Args:
-            new_A (int): 새로운 lyapunov based guide
-            action (int): 수행하고자 했던 action
-
-        Returns:
-            float: reward
-        
-        Calls:
-            utils.cal_quality.get_MsE/get_FFT: state 계산을 위해 호출 (origin)
-            utils.get_state.cluster_pred: state 계산을 위해 호출 (int)
-            self.__reward_function: reward 계산
-            
-        """
-        r = 0
-        self.send_A = self.fps - action
-        self.sum_a += self.send_A
-        #self.sum_A += self.target_A
-        #self.trans_list.append(self.fps-self.target_A)
-        self.trans_list.append(self.state)
-        self.trans_list.append(action)
-        #self.prev_A = self.target_A
-        #self.target_A = new_A
-        
-        if self.run :
-            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame)]
-        else :
-            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
-    
-        if self.learn_method == "Q" :
-            self.state = cluster_pred(self.origin_state, self.model)
-        elif self.learn_method == "PPO" :
-            self.state = self.origin_state
-        
-        self.trans_list.append(self.state)
-        
-        if not self.run :
-            r = self.__reward_function()
-            self.buffer.put_data(self.trans_list)
-        self.trans_list = []
-        
-        return r
-
-
-    def __cal_important(self) -> List[float]:
-        """현재 idx에서 1초동안의 프레임 (=fps)을 이용하여 물체 개수로부터 중요도를 계산합니다.
-        
-        Returns: List[important_score]
-        """
-        # get importance
-        std_idx = self.idx - self.fps
-        important_list = []
-        imp_max = 1
-        imp_min = -1 * self.beta
-        reg_num = max(self.obj_num_list[std_idx : self.idx+1])
-        for f in range(self.fps) :
-            importance = (self.obj_num_list[std_idx+f] / reg_num) if reg_num != 0 else 0
-            #normalized_importance = (imp_max - imp_min)*(importance) + imp_min
-            #important_list.append(normalized_importance)
-            important_list.append(importance)
-
-        return important_list
-
-
-    def __reward_function(self):
-        """reward를 계산합니다.
-
-        Returns:
-            float: reward
-            
-        Calls:
-            self.__cal_important: 리워드 계산을 위해 각 프레임의 중요도를 계산합니다. 
-
-        """
-        important_list = self.__cal_important()
-        # _, s, a, s_prime = self.trans_list
-        plusdiv = len(important_list[a+1:])
-        minusdiv = len(important_list[:a+1]) 
-        if plusdiv == 0 :
-            plusdiv = 1
-        if  minusdiv == 0:
-            minusdiv = 1
-        r = (sum(important_list[a+1:])/plusdiv) - (sum(important_list[:a+1])/minusdiv) 
-        
-        self.trans_list.append(r)
-        self.reward_sum += r
-        # if self.show_log :
-        #    self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}\nA(t): {:2d}\tA(t+1): {:2d}".format(s[0], a, s_prime[0], r, self.prev_A, self.target_A))
-            
-        return r
-
-
-    def show_trans(self) :
-        """show_log가 true일 때, 에피소드 전체에서 각각의 transition을 모두 출력합니다.
-        """
-        for row in self.logList :
-            print(row)
-        return
-
 
 class Environment():
     """강화학습 agent와 상호작용하는 environment
@@ -452,6 +195,7 @@ class Environment():
         self.debug_mode = conf['debug_mode']
         
         self.threshold = conf['threshold']
+        self.target_f1 = conf['target_f1']
         
         self.radius = conf['radius']
         self.state_num = conf['state_num']
@@ -518,7 +262,10 @@ class Environment():
         self.trans_list = []
         if self.show_log :   
             self.logList = []
-            
+        
+        self.important_print_count = 0
+        self.reward_print_count = 0
+        
         return self.state
 
 
@@ -533,7 +280,7 @@ class Environment():
         label_list =  os.listdir(detection_path)
         self.obj_num_list = []
 
-        for label in label_list :  # TODO 없던 물체 분간...?
+        for label in label_list :
             label_path = detection_path+"/"+label
             with open(label_path, 'r') as file :
                 lines = file.readlines()
@@ -638,34 +385,52 @@ class Environment():
 
     def __cal_important(self) -> List[float]:
         """현재 idx에서 1초동안의 프레임 (=fps)을 이용하여 물체 개수로부터 중요도를 계산합니다.
-        
+        # @param
         Returns: List[important_score]
         """
-        reg_list = []
-        important_list = []
-        std_idx = self.idx - self.action_dim #self.idx 다음 frame을 의미하므로 ㅇㅇ 
-        
         def max_func(lst):
             if len(lst) == 0:
                 return 0
-            
             return max(lst)
         
         def min_func(lst):
             if len(lst) == 0:
                 return 0
-            
             return min(lst)
         
         def avg_func(lst):
             if len(lst) == 0:
                 return 0
-
             return sum(lst) / len(lst)
         
         def identity_func(lst):
-            return lst
+            return 1
+        
+        std_idx = self.idx - self.action_dim 
 
+        ## [2]: criteria: '0' -> object_num / '1' -> 1 - F1 score 
+        score_list=[]
+        if self.important_method[2] == '0':
+            if self.important_method[0] == '0':
+                score_list = self.obj_num_list[ std_idx : std_idx+self.window+1 ]
+            
+            elif self.important_method[0] == '1':
+                gap = int((self.window - 1)//2)
+                score_list = self.obj_num_list[ std_idx-gap : std_idx+self.action_dim ]
+            
+        if self.important_method[2] == '1':
+            last_idx = self.idx - self.action_dim-1
+            if last_idx < 1:
+                last_idx = 1
+            for f in range(self.action_dim) :
+                cur_idx = std_idx + f
+                if cur_idx < 1:
+                    cur_idx = 1
+                f1 = get_F1_with_idx(last_idx, cur_idx, self.video_processor.video_path)
+                score_list.append(1 - f1)
+            
+        ## [1]: regularization method: *'3' only using in i[2] == '1'
+        reg_list = []
         if self.important_method[1] == '0':
             reg_func = max_func
             
@@ -678,59 +443,47 @@ class Environment():
         elif self.important_method[1] == '3':
             reg_func = identity_func
         
-        
+        ## [0]: relative important calculate bound: *'1' only using in i[2] == '0'
         if self.important_method[0] == '0':
             for f in range(self.action_dim) :
-                reg_list.append(reg_func(self.obj_num_list[ std_idx : std_idx+self.window+1 ]))
+                reg_list.append(reg_func(score_list))
         
         elif self.important_method[0] == '1':
+            gap = int((self.window - 1)//2)
             for f in range(self.action_dim) :
-                gap = int((self.window - 1)//2)
-                cur_idx = std_idx + f
-                reg_list.append(reg_func(self.obj_num_list[ cur_idx-gap : cur_idx+gap+1 ]))
+                cur_idx = gap + f
+                reg_list.append(reg_func(score_list[ cur_idx-gap : cur_idx+gap+1 ]))
         
-        #TODO: F1 score importance
-        elif self.important_method[0] == '2':
-            last_idx = self.idx - self.action_dim-1
-            if last_idx < 1:
-                last_idx = 1
-            obj_num_list = []
-            for f in range(self.action_dim) :
-                cur_idx = std_idx + f
-                if cur_idx < 1:
-                    cur_idx = 1
-                f1 = get_F1_with_idx(last_idx, cur_idx, self.video_processor.video_path)
-                obj_num_list.append(1 - f1)
-            
-            for f in range(self.action_dim) :
-                reg_list.append(reg_func(obj_num_list[0:self.window+1])) #window가 action_dim보다 작아야함
-            
-            for f in range(self.action_dim) :
-                cur_idx = std_idx + f
-                importance = (obj_num_list[f] / reg_list[f]) if reg_list[f] != 0 else 0
-                important_list.append(importance)
-                
-            return important_list
-        
-
+        important_list = []
         for f in range(self.action_dim) :
-            cur_idx = std_idx + f
-            importance = (self.obj_num_list[cur_idx] / reg_list[f]) if reg_list[f] != 0 else 0
+            importance = (score_list[f] / reg_list[f]) if reg_list[f] != 0 else 0
             important_list.append(importance)
         
+        if self.debug_mode and self.important_print_count < 10:
+            self.important_print_count += 1
+            print("score:", score_list, len(score_list))
+            print("reg:",  reg_list, len(reg_list))
+            print("important:", important_list, len(important_list))
+            print()
         
         return important_list
 
 
     def __reward_function(self):
         """reward를 계산합니다.
-
+        # @param
         Returns:
             float: reward
-            
         Calls:
             self.__cal_important: 리워드 계산을 위해 각 프레임의 중요도를 계산합니다. 
-
+        
+        # NOTE: about reward_function
+        supported
+        - 00: default
+        - 10: important threshold
+        - 11: important threshold + plus reward for skip length
+        - 20: F1 threshold
+        - 21: F1 threshold + plus reward for skip length
         """
         important_list = self.__cal_important()
         if self.omnet_mode:
@@ -741,30 +494,56 @@ class Environment():
         plus_beta = 1 - self.beta
         minus_beta = self.beta
         
-        if self.reward_method == '0':
-            plusdiv = len(important_list[a+1:])
-            minusdiv = len(important_list[:a+1]) 
-            if plusdiv == 0 :
-                plusdiv = 1
-            if  minusdiv == 0:
-                minusdiv = 1
-            r = (plus_beta*sum(important_list[a+1:])/plusdiv) - (minus_beta*sum(important_list[:a+1])/minusdiv) 
+        ## [1]: plus reward for skip length use: *'1' not used in r[1] == '0'
+        if self.reward_method[1] == '0':
+            skip_weight = 1
+            
+        elif self.reward_method[1] == '1':
+            skip_weight = a
         
-        if self.reward_method == '2':
+        plus_div = len(important_list[a+1:])
+        minus_div = len(important_list[:a+1]) 
+        if plus_div == 0: plus_div = 1
+        if  minus_div == 0: minus_div = 1
+        
+        ## [0]: reward method
+        if self.reward_method[0] == '0':
+            r = (plus_beta*sum(important_list[a+1:])/plus_div) - (minus_beta*sum(important_list[:a+1])/minus_div) 
+            if self.debug_mode and self.reward_print_count < 10:
+                self.reward_print_count  += 1
+                print("method 0:", r)
+                print()
+            
+        elif self.reward_method[0] == '1':
+            score_sum = sum(important_list[a+1:])/plus_div - sum(important_list[:a+1])/minus_div
+            # score_sum = plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1])
+            # score_sum = sum(important_list)
+            if score_sum < self.threshold:
+                r = -1 * minus_beta * sum(important_list[:a+1])/minus_div
+            else :
+                r = skip_weight * plus_beta * sum(important_list[a+1:])/plus_div
+            
+            if self.debug_mode and self.reward_print_count < 10:
+                self.reward_print_count += 1
+                print("method 1:", r)
+                print("Important score status", score_sum)
+                print()
+            
+        elif self.reward_method[0] == '2':
             last_idx = self.idx - self.action_dim-1
             process_idx = self.idx - self.action_dim+a+1
             f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
-            #print(f1)
-            
-            if f1 < self.threshold :
-                minusdiv = len(important_list[:a+1])
-                if minusdiv == 0: minusdiv = 1
-                r = -1 * minus_beta * sum(important_list[:a+1])/minusdiv
+            # print(f1)
+            if f1 < self.target_f1 :
+                r = -1 * minus_beta * sum(important_list[:a+1])/minus_div
             else :
-                plusdiv = len(important_list[a+1:])
-                if plusdiv == 0: plusdiv = 1
-                r = a * plus_beta * sum(important_list[a+1:])/plusdiv
+                r = skip_weight * plus_beta * sum(important_list[a+1:])/plus_div
 
+            if self.debug_mode and self.reward_print_count < 10:
+                self.reward_print_count += 1
+                print("method 2:", r)
+                print("F1 score status", f1)
+                print()
         
         self.trans_list.append(r)
         self.reward_sum += r
@@ -774,7 +553,8 @@ class Environment():
                 self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}\nA(t): {:2d}\tA(t+1): {:2d}".format(s[0], a, s_prime[0], r, self.prev_A, self.target_A))
             else:
                 self.logList.append("s(t): {:2d}\tu(t): {:2d}\ts(t+1): {:2d}\tr(t): {:.5f}".format(s[0], a, s_prime[0], r))
-        
+            
+            
         return r
 
 

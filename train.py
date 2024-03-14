@@ -198,15 +198,21 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                     require_skip = 0
                 a = agent.get_action(s, require_skip, rand)
                 s, _, done = env.step(a)
+            
             if env.buffer.get_size() < conf['start_buffer_size']:
                 print("buffer size: ", env.buffer.get_size())
-            else :
+            else:
                 rand = False
+                prev_qtable = agent.get_qtable()
                 for _ in range(conf["sampling_num"]):  # # of sampling count
                     trans = env.buffer.get_data()
                     agent.update_qtable(trans)
                 agent.decrease_eps()
                 
+                if agent.is_converge(prev_qtable):
+                    print("early stop in episode", epi)
+                    break
+            
             # logging
             if not conf["debug_mode"]:
                 writer.add_scalar("Reward/all", env.reward_sum, epi)

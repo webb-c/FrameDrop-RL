@@ -35,6 +35,8 @@ class Agent():
             self.qtable = self.__load_model(conf['model_path'])
         else :
             self.qtable = np.zeros((self.state_num, self.action_dim+1))  # s, a
+        
+        self.stop_count = 0
         self.action_space = list(range(self.action_dim+1))  # 0 to fps
         self.isFirst = True
 
@@ -102,7 +104,6 @@ class Agent():
 
         return
 
-
     
     def decrease_eps(self):
         """Q learning 학습을 위해 사전 설정한 값을 이용하여 eps-greedy에 사용하는 epsilon값을 변경합니다.
@@ -111,7 +112,7 @@ class Agent():
         self.eps = max(self.eps, self.eps_min)
     
 
-    def __get_qtable(self) -> np.ndarray :
+    def get_qtable(self) -> np.ndarray :
         """현재 agent의 qtable을 반환합니다.
 
         Returns:
@@ -143,7 +144,7 @@ class Agent():
         Returns:
             bool: 저장이 정상적으로 수행되었으면 True
         """
-        qtable = self.__get_qtable()
+        qtable = self.get_qtable()
         np.save(save_path, qtable)
     
         return True
@@ -157,7 +158,22 @@ class Agent():
                 print(round(self.qtable[s][a], 2), end="   ")
             print()
 
-    def is_converge(self):
+
+    def is_converge(self, prev_qtable):
         """학습이 어느정도 수렴했는지를 확인하며, early stop을 수행합니다.
         """
-        pass
+        total_difference = 0
+        for s in range(self.state_num) :
+            for a in range(self.action_dim+1) :
+                difference = abs(self.qtable[s][a] - prev_qtable[s][a])  # 두 원소의 차이를 절댓값으로 계산
+                total_difference += difference
+        
+        print(total_difference)
+        
+        if total_difference >= 0.5:
+            self.stop_count += 1
+        
+        if self.stop_count > 5:
+            return True
+
+        return False

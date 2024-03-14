@@ -14,16 +14,17 @@ def parse_common_args() :
     parser.add_argument("-con", "--is_continue", type=str2bool, default=False, help="continue learning?")
     parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
 
-    parser.add_argument("-reward", "--reward_method", type=str, default="0", help="using which reward function")
-    parser.add_argument("-important", "--important_method", type=str, default="00", help="using which important score")
+    parser.add_argument("-reward", "--reward_method", type=str, default="00", help="using which reward function")
+    parser.add_argument("-important", "--important_method", type=str, default="000", help="using which important score")
     parser.add_argument("-b", "--beta", type=float, default=0.5, help="sensitive for number of objects")
     parser.add_argument("-w", "--window", type=int, default=30, help="used to calculate important score")
     parser.add_argument("-r", "--radius", type=int, default=60, help="used to calculate blurring score")
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
-    #TODO: hyperparameter: action, radius, beta, threshold, V
-    parser.add_argument("-t", "--threshold", type=float, default=0.9, help="target value for reward +-")
+    #TODO: hyperparameter: action, radius, beta, threshold, f1score, V
+    parser.add_argument("-t", "--threshold", type=float, default=0.0, help="target value for reward +- (in 1)")
+    parser.add_argument("-f", "--target_f1", type=float, default=0.7, help="target f1 score for reward +- (in 2)")
     
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     parser.add_argument("-V", "--V", type=float, default=100000000, help="trade off parameter between stability & accuracy")
@@ -35,7 +36,7 @@ def parse_common_args() :
     parser.add_argument("-ed", "--eps_dec", type=float, default=0.01, help="epsilon decrese value") #change 0.005 -> 0.01
     parser.add_argument("-em", "--eps_min", type=float, default=0.1, help="epsilon minimum value")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
-    parser.add_argument("-episode", "--episode_num", type=int, default=200, help="number of train episode")
+    parser.add_argument("-episode", "--episode_num", type=int, default=150, help="number of train episode")
     
     args, unknown = parser.parse_known_args()
     return args, parser
@@ -85,7 +86,9 @@ def parse_test_args() :
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
-    parser.add_argument("-t", "--threshold", type=float, default=0.9, help="target value for reward +-")
+    # may... -i == __1 : 0에서 1사이 / 0.3? | -i == __0 : 0.0
+    parser.add_argument("-t", "--threshold", type=float, default=0.0, help="target value for reward +- (in 1)")
+    parser.add_argument("-f", "--target_f1", type=float, default=0.7, help="target f1 score for reward +- (in 2)")
     
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     # model_1: 100000000 | SLN: 50 | YOLO: 
@@ -139,7 +142,7 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     for i in range(1, len(parts), 2):
         key = parts[i]
         value = parts[i+1]
-        if key == 'statenum':  #TODO PPO 
+        if key == 'statenum': 
             conf['state_num'] = int(value)
         if key == 'videopath':
             cluster_video_name = value
