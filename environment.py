@@ -263,8 +263,8 @@ class Environment():
         if self.show_log :   
             self.logList = []
         
-        self.important_print_count = 0
-        self.reward_print_count = 0
+        self.important_print_count = 10
+        self.reward_print_count = 10
         
         return self.state
 

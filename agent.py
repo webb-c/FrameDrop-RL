@@ -173,7 +173,7 @@ class Agent():
         if total_difference >= 0.5:
             self.stop_count += 1
         
-        if self.stop_count > 5:
-            return True
+        # if self.stop_count > 5:
+        #     return True
 
         return False

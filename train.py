@@ -16,6 +16,9 @@ Example of Usage :
 # python train.py -qp models/q_table_unmask_YOLO_jetson.npy  -con True -lr {learningrate}
 
 """
+import msvcrt
+import sys
+import signal
 import os
 import cv2
 import re
@@ -155,6 +158,13 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
         cluster = cluster_train(cluster, np.array(data), cluster_path)
         print("finish making cluster model !\n")
 
+def input_with_timeout(timeout):
+    start_time = time.time()
+    while (time.time() - start_time) < timeout:
+        if msvcrt.kbhit():
+            return sys.stdin.readline().rstrip()
+    raise TimeoutError()
+
 
 def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, Union[str, bool, int, float]]) -> bool :
     """argument를 전달받아, 그 설정대로 강화학습을 수행합니다.
@@ -183,6 +193,19 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
         env = Environment(conf)
         agent = Agent(conf, run=False)
         rand = True
+
+        #! Handler 등록
+        def handler(signum, frame):
+            print('Ctrl+C가 눌렸습니다. 현재 학습중인 Agent르 저장하고 종료합니다.')
+            split_path = save_path.split(".") 
+            modified_path = split_path[0] + "_" + str(epi) + ".", split_path[1] 
+            agent.save_model(modified_path)
+            save_parameters_to_csv(start_time, conf, train=True)
+            sys.exit(0)
+        
+        if not conf['debug_mode']:
+            signal.signal(signal.SIGINT, handler)
+    
         print("train start !")
         for epi in tqdm(range(conf['episode_num'])):
             done = False
@@ -229,8 +252,16 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             if conf['omnet_mode']:
                 env.omnet.get_omnet_message()
                 env.omnet.send_omnet_message("finish")
-            # end_time  = time.time()
             
+            if not conf["debug_mode"]:
+                if epi % 30 == 0:
+                    print("*** Waiting saving Signal... ***")
+                    user_input = input_with_timeout(10)
+                    if user_input:
+                        split_path = save_path.split(".") 
+                        modified_path = split_path[0] + "_" + str(epi) + ".", split_path[1] 
+                        agent.save_model(modified_path)
+            # end_time  = time.time()
             # print("time: {:.2f}s".format(end_time - start_time))
             
     
