@@ -62,7 +62,6 @@ def path_manager(video_path: str, state_num: int, radius: int) -> Tuple[str, str
 
 def logging_mannager(start_time: str, conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, Union[str, bool, int, float]]) -> Tuple[str, str]:
     """학습관련 argument가 기입된 conf를 전달받아 로깅, 지정에 사용할 경로를 반환합니다.
-
     Args:
         start_time: 학습을 시작한 시간
         conf (Dict): train argument
@@ -92,15 +91,25 @@ def logging_mannager(start_time: str, conf: Dict[str, Union[str, bool, int, floa
                 name += f"_{arg}_{value}"
     
     log_path = os.path.join(root_log, name)
-    if conf['learn_method'] == "Q" :
-        root_save = os.path.join(root_save, "ndarray")
-        save_path = os.path.join(root_save, name + ".npy")
-    elif conf['learn_method'] == "PPO" :
-        root_save = os.path.join(root_save, "weight")
-        save_path = os.path.join(root_save, name + ".pt")
+    root_save = os.path.join(root_save, "ndarray")
+    save_path = os.path.join(root_save, name + ".npy")
     
-    return log_path, save_path
+    return log_path, save_path, name
 
+
+def save_name_mannager(epi, name):
+    """현재까지 학습한 episode를 전달하면 .npy 파일을 저장하기 위해 사용할 경로를 반환합니다.
+
+    Args:  
+        epi:
+    """
+    root_save = "./models/"
+    name = name+"_"+str(epi)
+    root_save = os.path.join(root_save, "ndarray")
+    save_path = os.path.join(root_save, name + ".npy")
+    
+    return save_path
+    
 
 def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, detection_path: str, FFT_path: str):
     """경로를 전달받아서 데이터가 존재하는지 검증하고 없다면 만들어냅니다.
@@ -181,7 +190,7 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S") 
     cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'], conf["radius"])
     verifier(conf, cluster_path, detection_path, FFT_path)
-    log_path, save_path = logging_mannager(start_time, conf, default_conf)
+    log_path, save_path, name = logging_mannager(start_time, conf, default_conf)
     if not conf['debug_mode'] :
         writer = SummaryWriter(log_path)
     conf['cluster_path'] = cluster_path
@@ -197,9 +206,8 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
         #! Handler 등록
         def handler(signum, frame):
             print('Ctrl+C가 눌렸습니다. 현재 학습중인 Agent르 저장하고 종료합니다.')
-            split_path = save_path.split(".") 
-            modified_path = split_path[0] + "_" + str(epi) + ".", split_path[1] 
-            agent.save_model(modified_path)
+            path = save_name_mannager(epi, name)
+            agent.save_model(path)
             save_parameters_to_csv(start_time, conf, train=True)
             sys.exit(0)
         
@@ -245,22 +253,18 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
                     writer.add_scalar("Network/Diff", (env.sum_A - env.sum_a), epi)
                     writer.add_scalar("Network/target_A(t)", env.sum_A, epi)
                     print("sum of A(t) : ", env.sum_A, "| sum of a(t) : ", env.sum_a)
-            if epi == 0 or (epi % 50) == 0 or epi == conf["episode_num"]-1 :
+            
+            if epi == 0 or (epi % 50) == 0:
                 agent.show_qtable()
                 env.show_trans()
+                if not conf["debug_mode"]:
+                    path = save_name_mannager(epi, name)
+                    agent.save_model(path)
             
             if conf['omnet_mode']:
                 env.omnet.get_omnet_message()
                 env.omnet.send_omnet_message("finish")
             
-            if not conf["debug_mode"]:
-                if epi % 30 == 0:
-                    print("*** Waiting saving Signal... ***")
-                    user_input = input_with_timeout(10)
-                    if user_input:
-                        split_path = save_path.split(".") 
-                        modified_path = split_path[0] + "_" + str(epi) + ".", split_path[1] 
-                        agent.save_model(modified_path)
             # end_time  = time.time()
             # print("time: {:.2f}s".format(end_time - start_time))
             
