@@ -81,7 +81,7 @@ def parse_test_args() :
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using lyapunov based guide?")
     parser.add_argument("-out", "--output_path", type=str, default=None, help="output video Path")
     parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
-    parser.add_argument("-log", "--log_network", type=str2bool, default=False, help="cmd print log")
+    parser.add_argument("-print", "--print_network", type=str2bool, default=False, help="cmd print log")
     parser.add_argument("-r", "--radius", type=int, default=60, help="used to calculate blurring score")
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
@@ -96,6 +96,10 @@ def parse_test_args() :
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
     parser.add_argument("-omnet", "--omnet_mode", type=str2bool, default=False, help="using omnet guide in RL run?")
+    
+    parser.add_argument("-log", "--log_name", type=str, default=None, help="log name")
+    parser.add_argument("-net", "--network_name", type=str, default=None, help="network name")
+    
     
     return parser.parse_args()
 
@@ -151,11 +155,18 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         if key == 'radius':
             conf['radius'] = int(value)
 
-    
     conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + ".pkl")
     assert conf["output_path"] is not None, "output_path is None."
-    output_name = re.split(r"[/\\]", conf['output_path'])[-1].split(".")[0]
+    if conf["log_name"] is None:
+        conf["log_name"] = conf['model_path'][:-4] + "_" + cluster_video_name
+    log_name = conf["log_name"]
+    log_name += "_"+str(conf["is_masking"])
+    if conf["network_name"] is not None:
+        log_name += "_"+conf["network_name"]
+    if conf["omnet_mode"] :
+        log_name += "_Agent_"+str(conf["pipe_num"])
     #log_path = os.path.join(root_log, start_time + "_" + output_name)
-    log_path = os.path.join(root_log, output_name)
+    log_path = os.path.join(root_log, log_name)
+    conf["log_path"] = log_path
     
     return conf, log_path

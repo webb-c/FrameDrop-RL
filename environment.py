@@ -209,7 +209,7 @@ class Environment():
                 self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug_mode)
                 
         if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_score'], write=True)
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_score'], write=conf['f1_score'])
         else:
             # training (reward) argument
             self.reward_method = conf['reward_method']
@@ -328,7 +328,8 @@ class Environment():
             ratio_A = ARRIVAL_MAX if path_cost == 0 else min(ARRIVAL_MAX, self.V / path_cost)
             new_A = math.floor(ratio_A*(self.action_dim))
             if self.debug_mode:
-                print("scaling cost using V:", ratio_A)
+                print("path cost:", path_cost)
+                print("scaling cost using V (V/path_cost):", ratio_A)
                 print("arrival rate using fps:", new_A)
         
         self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()

@@ -205,10 +205,11 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
 
         #! Handler 등록
         def handler(signum, frame):
-            print('Ctrl+C가 눌렸습니다. 현재 학습중인 Agent르 저장하고 종료합니다.')
+            print('Ctrl+C가 눌렸습니다. 현재 학습중인 Agent를 저장하고 종료합니다.')
             path = save_name_mannager(epi, name)
             agent.save_model(path)
             save_parameters_to_csv(start_time, conf, train=True)
+            print("저장 완료!\n")
             sys.exit(0)
         
         if not conf['debug_mode']:

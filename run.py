@@ -52,7 +52,6 @@ from utils.util import save_parameters_to_csv
 def test(conf, start_time, writer):
     if not conf['omnet_mode'] and conf['is_masking'] :
         assert True, "if you want masking mode, omnet mode must be set to True"
-
     env = Environment(conf, run=True)
     agent = Agent(conf, run=True)
     done = False
@@ -87,7 +86,7 @@ def test(conf, start_time, writer):
     
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
     
-    if conf['log_network']:
+    if conf['print_network']:
         print("a(t) list :", a_list)
         if conf['omnet_mode']:
             print("A(t) list :", A_list)
