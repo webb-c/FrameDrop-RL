@@ -96,9 +96,11 @@ def parse_test_args() :
     
     parser.add_argument("-debug", "--debug_mode", type=str2bool, default=False, help="debug tool")
     parser.add_argument("-omnet", "--omnet_mode", type=str2bool, default=False, help="using omnet guide in RL run?")
-    
-    parser.add_argument("-log", "--log_name", type=str, default=None, help="log name")
+
+    # parser.add_argument("-log", "--log_name", type=str, default=None, help="log name")
     parser.add_argument("-net", "--network_name", type=str, default=None, help="network name")
+    
+    parser.add_argument("-rl", "--using_RL", type=str2bool, default=True, help="using RL model? if it is False, then every frame is sended.")
     
     
     return parser.parse_args()
@@ -137,11 +139,24 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     """
     root_log = "./results/logs/test/"
     root_cluster = "./models/cluster/"
+    root_output = "./results/output/"
+    
+    video_path = conf['video_path']
+    video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
     
     model_path = conf['model_path']
-    name = re.split(r"[/\\]", model_path)[-1].split(".")[0]
+    name = re.split(r"[/\\]", model_path)[-1][:-4]
     parts = name.split('_')
     cluster_video_name = ""
+    
+    log_name = str(start_time) + "_" +  re.split(r"[/\\]", conf['video_path'])[-1][:-4] + "_" + parts[0]
+    name_list = ['rewardmethod', 'threshold', 'radius', 'epsdec']
+    match_dict = {
+        'rewardmethod': 'reward',
+        'threshold': 'thresh',
+        'radius': 'r',
+        'epsdec': 'e'
+    }
     
     for i in range(1, len(parts), 2):
         key = parts[i]
@@ -153,20 +168,21 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         if key == 'actiondim':
             conf['action_dim'] = int(value)
         if key == 'radius':
-            conf['radius'] = int(value)
+            conf['radius'] = int(value) 
+        if key in name_list:
+            log_name += ("_" + match_dict[key] + "_" + str(value))
 
     conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + ".pkl")
-    assert conf["output_path"] is not None, "output_path is None."
-    if conf["log_name"] is None:
-        conf["log_name"] = conf['model_path'][:-4] + "_" + cluster_video_name
-    log_name = conf["log_name"]
-    log_name += "_"+str(conf["is_masking"])
-    if conf["network_name"] is not None:
-        log_name += "_"+conf["network_name"]
-    if conf["omnet_mode"] :
-        log_name += "_Agent_"+str(conf["pipe_num"])
-    #log_path = os.path.join(root_log, start_time + "_" + output_name)
-    log_path = os.path.join(root_log, log_name)
-    conf["log_path"] = log_path
+
+    log_name += "_mask_" + str(conf["is_masking"])
     
-    return conf, log_path
+    if conf["network_name"] is not None:
+        log_name += "_net_"+conf["network_name"]
+    if conf["omnet_mode"] :
+        log_name += "_agent_"+str(conf["pipe_num"])
+
+    conf["log_path"] = os.path.join(root_log, log_name)
+    conf["output_path"] = os.path.join(root_output, start_time + ".mp4")
+    #log_path = os.path.join(root_log, start_time + "_" + output_name)
+    
+    return conf, conf["log_path"]

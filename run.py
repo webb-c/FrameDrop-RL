@@ -66,7 +66,12 @@ def test(conf, start_time, writer):
             require_skip = conf['fps'] - env.target_A
         else :
             require_skip = 0
-        a = agent.get_action(s, require_skip, False)
+        
+        if conf["using_RL"]:
+            a = agent.get_action(s, require_skip, False)
+        else:
+            a = 0    
+        
         if conf['omnet_mode']:
             A_list.append(env.target_A)
         u_list.append(a)
@@ -110,7 +115,10 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     conf = add_args(conf)
     conf, log_path = parse_test_name(conf, start_time)
     if not conf['debug_mode']:
-        writer = SummaryWriter(log_path)
+        if conf["using_RL"]:
+            writer = SummaryWriter(log_path)
+        else:
+            writer = None
     else:
         writer = None
     prnt(conf)
@@ -118,7 +126,7 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     a, A, finish_time, rounded_fraction, conf = test(conf, start_time, writer)
     conf['fraction'] = rounded_fraction
     
-    if conf['f1_score'] :
+    if conf['f1_score'] and conf["using_RL"] :
         root_detection =  "./data/detect/test/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
         model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
@@ -135,7 +143,7 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         
         origin_list = os.listdir(origin_detection_path)
         skip_list = os.listdir(skip_detection_path)
-        num_file = len(origin_list)
+        num_file = min(len(origin_list), len(skip_list))
         total_F1 = 0
         for i in range(num_file):
             origin, skip = origin_list[i], skip_list[i]

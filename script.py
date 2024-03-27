@@ -12,8 +12,8 @@ for entry in os.listdir(searchdir):
         last = conf_list[-1][:-4]
         is_epi = False
         try:
-            last = float(last)
-            if last.is_integer():
+            last = str(last)
+            if last == "e":
                 is_epi = True
             else:
                 is_epi = False
@@ -30,5 +30,5 @@ for entry in os.listdir(searchdir):
                     test_dataset = ["JN"]
                 
                 for data in test_dataset:
-                    command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/{filename} -out results/PI/{date}_{data}.mp4 -log {filename_without_type}_{data} -mask f -f1 t"
+                    command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/{filename} -mask f -f1 t"
                     os.system(command)

@@ -104,7 +104,7 @@ def save_name_mannager(epi, name):
         epi:
     """
     root_save = "./models/"
-    name = name+"_"+str(epi)
+    name = name+"_e_"+str(epi)
     root_save = os.path.join(root_save, "ndarray")
     save_path = os.path.join(root_save, name + ".npy")
     
