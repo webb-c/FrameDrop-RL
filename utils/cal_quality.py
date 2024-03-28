@@ -12,6 +12,14 @@ def get_MSE(prev_frame, frame) :
     MSE = np.mean(np.square(diff))
     return MSE
     
+def get_diff_info(prev_frame, frame) :
+    diff = cv2.absdiff(prev_frame, frame)
+    max_diff = np.max(diff)
+    min_diff = np.min(diff)
+    mean_diff = np.mean(diff)
+    info = [min_diff, mean_diff, max_diff]
+    return info
+    
 # blurring
 def get_FFT(frame, radius=60) :
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

@@ -187,6 +187,8 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + "_" + str(conf['action_dim']) + "_" +  str(conf['state_method']) + ".pkl")
     elif conf['state_method'] == 2:
         conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['action_dim']) + "_" + str(conf['state_method']) + ".pkl")
+    elif conf['state_method'] == 0:
+        conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['state_method']) + ".pkl")
 
     log_name += "_mask_" + str(conf["is_masking"])
     

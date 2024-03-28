@@ -11,7 +11,7 @@ import numpy as np
 import win32pipe, win32file
 from typing import Tuple, List, Union, Dict
 from utils.get_state import cluster_pred, cluster_load, cluster_init
-from utils.cal_quality import get_FFT, get_MSE
+from utils.cal_quality import get_FFT, get_MSE, get_diff_info
 from utils.cal_F1 import get_F1_with_idx
 
 ARRIVAL_MAX = 1.0
@@ -269,15 +269,15 @@ class Environment():
                 self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame, self.radius)]
             else :
                 self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
-        
         elif self.state_method == 1:
             if self.run:
                 self.origin_state = [get_MSE(self.last_skip_frame, self.cur_frame), get_FFT(self.cur_frame, self.radius)]
             else:
                 self.origin_state = [get_MSE(self.last_skip_frame, self.cur_frame), self.FFT_list[self.idx]]
-        
         elif self.state_method == 2:
             self.origin_state = [get_MSE(self.last_skip_frame, self.cur_frame), get_MSE(self.prev_frame, self.cur_frame)]
+        elif self.state_method == 3:
+            self.origin_state = get_diff_info(self.prev_frame, self.cur_frame)
         
         if self.learn_method == "Q" :
             state = cluster_pred(self.origin_state, self.model)
@@ -350,7 +350,7 @@ class Environment():
                 print("scaling cost using V (V/path_cost):", ratio_A)
                 print("arrival rate using fps:", new_A)
         
-        self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
+        self.prev_frame, self.cur_frame, self.last_skip_frame, self.idx = self.video_processor.get_frame()
         r = self.__triggered_by_guide(new_A, action)
         
         return self.state, r, done

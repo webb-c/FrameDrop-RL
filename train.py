@@ -33,7 +33,7 @@ import datetime
 import time
 from torch.utils.tensorboard import SummaryWriter
 from utils.get_state import cluster_train, cluster_init
-from utils.cal_quality import get_FFT, get_MSE
+from utils.cal_quality import get_FFT, get_MSE, get_diff_info
 from utils.parser import parse_train_args
 from utils.util import save_parameters_to_csv
 
@@ -59,6 +59,8 @@ def path_manager(video_path: str, state_num: int, radius: int, state_method: int
         cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(radius) + "_" + str(action_dim) + "_" + str(state_method) + ".pkl")
     elif state_method == 2:
         cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(action_dim) + "_" + str(state_method) + ".pkl")
+    elif state_method == 3:
+        cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(state_method) + ".pkl")
     
     detection_path = os.path.join(root_detection, video_name + "/labels")
     FFT_path = os.path.join(root_FFT, video_name + "_" + str(radius) + ".npy")
@@ -165,6 +167,8 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
             idx = 0
             data.append([0, FFTList[idx]])
             while True :
+                if idx % 1000 == 0 :
+                    print(idx)
                 idx += 1
                 ret, f_cur = cap.read()
                 if not ret :
@@ -181,6 +185,8 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
             data = []
             idx = 0
             while True :
+                if idx % 1000 == 0 :
+                    print(idx)
                 ret, frame = cap.read()
                 if not ret :
                     cap.release()
@@ -190,9 +196,11 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
                 frame_list.append(frame)
                 if len(frame_list) > conf['action_dim']:    
                     for k in range(1, conf['action_dim']+1):
+                        if idx+k >= len(FFTList):
+                            break
                         data.append([get_MSE(frame_list[0], frame_list[k]), FFTList[idx+k]])
                     frame_list.pop(0)
-                idx += conf["action_dim"]
+                    idx += 1
 
         
         elif conf['state_method'] == 2:
@@ -201,6 +209,8 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
             data = []
             idx = 0
             while True :
+                if idx % 1000 == 0 :
+                    print(idx)
                 ret, frame = cap.read()
                 if not ret :
                     cap.release()
@@ -212,8 +222,25 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
                     for k in range(1, conf['action_dim']+1):
                         data.append([get_MSE(frame_list[0], frame_list[k]), get_MSE(frame_list[k-1], frame_list[k])])
                     frame_list.pop(0)
-                idx += conf["action_dim"]
+                    idx += 1
         
+        
+        elif conf['state_method'] == 3:
+            data = []
+            _, f_prev = cap.read()
+            idx = 0
+            while True :
+                if idx % 1000 == 0 :
+                    print(idx)
+                idx += 1
+                ret, f_cur = cap.read()
+                if not ret :
+                    cap.release()
+                    break
+                data.append(get_diff_info(f_prev, f_cur))
+                f_prev = f_cur
+            
+            
         cluster = cluster_train(cluster, np.array(data), cluster_path)
         print("finish making cluster model !\n")
 
