@@ -1,6 +1,6 @@
 import os
 
-searchdir = "D:/VSC/INFOCOM/FrameDrop-RL/models/ndarray"
+searchdir = "D:/VSC/INFOCOM/FrameDrop-RL/models/ndarray/new"
 
 for entry in os.listdir(searchdir):
     if os.path.isfile(os.path.join(searchdir, entry)):
@@ -30,5 +30,5 @@ for entry in os.listdir(searchdir):
                     test_dataset = ["JN"]
                 
                 for data in test_dataset:
-                    command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/{filename} -mask f -f1 t"
+                    command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/new/{filename} -mask f -f1 t"
                     os.system(command)

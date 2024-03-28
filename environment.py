@@ -106,7 +106,7 @@ class VideoProcessor():
             self.cap = cv2.VideoCapture(self.video_path)
             _, f_init = self.cap.read()
         
-        self.prev_frame, self.cur_frame = f_init, f_init
+        self.prev_frame, self.cur_frame, self.last_skip_frame = f_init, f_init, f_init
         self.idx = 0
         self.num_all, self.num_processed = 0, 0
         
@@ -142,6 +142,7 @@ class VideoProcessor():
             self.idx += 1
             self.num_all += 1
 
+        self.last_skip_frame = self.cur_frame
         
         for _ in range(self.action_dim - skip):
             self.prev_frame = self.cur_frame
@@ -158,7 +159,6 @@ class VideoProcessor():
             self.idx += 1
             self.num_all += 1
             self.num_processed += 1
-
             
         return True
     
@@ -169,7 +169,7 @@ class VideoProcessor():
         Returns:
             Tuple[prev_frame, cur_frame, idx]:
         """
-        return self.prev_frame, self.cur_frame, self.idx
+        return self.prev_frame, self.cur_frame, self.last_skip_frame, self.idx
 
 
 class Environment():
@@ -200,6 +200,8 @@ class Environment():
         self.radius = conf['radius']
         self.state_num = conf['state_num']
         self.action_dim = conf['action_dim']
+        
+        self.state_method = conf['state_method']
         
         self.omnet_mode = conf['omnet_mode']
         if self.omnet_mode:
@@ -247,17 +249,9 @@ class Environment():
             self.sum_A = 0
             self.prev_A, self.target_A = self.action_dim, self.action_dim
         self.show_log = show_log
-        self.prev_frame, self.cur_frame, self.idx = self.video_processor.get_frame()
+        self.prev_frame, self.cur_frame, self.last_skip_frame, self.idx = self.video_processor.get_frame()
         
-        if self.run :
-            self.origin_state = [0, get_FFT(self.cur_frame, self.radius)]
-        else :
-            self.origin_state = [0, self.FFT_list[self.idx]]
-        
-        if self.learn_method == "Q" :
-            self.state = cluster_pred(self.origin_state, self.model)
-        elif self.learn_method == "PPO" :
-            self.state = self.origin_state
+        self.state = self.__observe_environment()
         
         self.trans_list = []
         if self.show_log :   
@@ -267,6 +261,30 @@ class Environment():
         self.reward_print_count = 10
         
         return self.state
+
+    
+    def __observe_environment(self):
+        if self.state_method == 0:
+            if self.run :
+                self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame, self.radius)]
+            else :
+                self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
+        
+        elif self.state_method == 1:
+            if self.run:
+                self.origin_state = [get_MSE(self.last_skip_frame, self.cur_frame), get_FFT(self.cur_frame, self.radius)]
+            else:
+                self.origin_state = [get_MSE(self.last_skip_frame, self.cur_frame), self.FFT_list[self.idx]]
+        
+        elif self.state_method == 2:
+            self.origin_state = [get_MSE(self.last_skip_frame, self.cur_frame), get_MSE(self.prev_frame, self.cur_frame)]
+        
+        if self.learn_method == "Q" :
+            state = cluster_pred(self.origin_state, self.model)
+        elif self.learn_method == "PPO" :
+            state = self.origin_state
+            
+        return state
 
 
     def __detect(self, detection_path: str, FFT_path: str):
@@ -365,15 +383,7 @@ class Environment():
         self.trans_list.append(self.state)
         self.trans_list.append(action)
         
-        if self.run :
-            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), get_FFT(self.cur_frame, self.radius)]
-        else :
-            self.origin_state = [get_MSE(self.prev_frame, self.cur_frame), self.FFT_list[self.idx]]
-    
-        if self.learn_method == "Q" :
-            self.state = cluster_pred(self.origin_state, self.model)
-        elif self.learn_method == "PPO" :
-            self.state = self.origin_state
+        self.state = self.__observe_environment()
         
         self.trans_list.append(self.state)
         

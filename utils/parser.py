@@ -38,6 +38,10 @@ def parse_common_args() :
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.05, help="setting learning rate")
     parser.add_argument("-episode", "--episode_num", type=int, default=150, help="number of train episode")
     
+    #state define
+    #? 0: basic / 1: last frame diff & FFT / 2: last frame diff & i-1 frame diff
+    parser.add_argument("-state", "--state_method", type=int, default=0, help="state define method")
+    
     args, unknown = parser.parse_known_args()
     return args, parser
 
@@ -102,6 +106,10 @@ def parse_test_args() :
     
     parser.add_argument("-rl", "--using_RL", type=str2bool, default=True, help="using RL model? if it is False, then every frame is sended.")
     
+    #state define
+    #? 0: basic / 1: last frame diff & FFT / 2: last frame diff & i-1 frame diff
+    parser.add_argument("-state", "--state_method", type=int, default=0, help="state define method")
+    
     
     return parser.parse_args()
 
@@ -150,10 +158,11 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     cluster_video_name = ""
     
     log_name = str(start_time) + "_" +  re.split(r"[/\\]", conf['video_path'])[-1][:-4] + "_" + parts[0]
-    name_list = ['rewardmethod', 'threshold', 'radius', 'epsdec']
+    name_list = ['rewardmethod', 'threshold', 'radius', 'epsdec', 'statemethod', 'actiondim']
     match_dict = {
         'rewardmethod': 'reward',
         'threshold': 'thresh',
+        'statemethod' : 'state',
         'radius': 'r',
         'epsdec': 'e'
     }
@@ -172,7 +181,12 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         if key in name_list:
             log_name += ("_" + match_dict[key] + "_" + str(value))
 
-    conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + ".pkl")
+    if conf['state_method'] == 0:
+        conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + "_" + str(conf['state_method']) + ".pkl")
+    elif conf['state_method'] == 1:
+        conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['radius']) + "_" + str(conf['action_dim']) + "_" +  str(conf['state_method']) + ".pkl")
+    elif conf['state_method'] == 2:
+        conf['cluster_path'] = os.path.join(root_cluster, cluster_video_name + "_" + str(conf['state_num']) + "_" + str(conf['action_dim']) + "_" + str(conf['state_method']) + ".pkl")
 
     log_name += "_mask_" + str(conf["is_masking"])
     

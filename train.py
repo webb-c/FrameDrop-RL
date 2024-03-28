@@ -40,7 +40,7 @@ from utils.util import save_parameters_to_csv
 from utils.yolov5.detect import inference
 
 
-def path_manager(video_path: str, state_num: int, radius: int) -> Tuple[str, str, str] :
+def path_manager(video_path: str, state_num: int, radius: int, state_method: int, action_dim: int) -> Tuple[str, str, str] :
     """ video path를 전달받아서 cluster, detection, FFT 경로를 지정하여 반환합니다.
 
     Args:
@@ -53,7 +53,13 @@ def path_manager(video_path: str, state_num: int, radius: int) -> Tuple[str, str
     root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/train/", "./data/FFT/"
     video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
     cluster_video_name = video_name.replace("_", "")
-    cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(radius) + ".pkl")
+    if state_method == 0:
+        cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(radius) + "_" + str(state_method)+ ".pkl")
+    elif state_method == 1:
+        cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(radius) + "_" + str(action_dim) + "_" + str(state_method) + ".pkl")
+    elif state_method == 2:
+        cluster_path = os.path.join(root_cluster, cluster_video_name + "_" + str(state_num) + "_" + str(action_dim) + "_" + str(state_method) + ".pkl")
+    
     detection_path = os.path.join(root_detection, video_name + "/labels")
     FFT_path = os.path.join(root_FFT, video_name + "_" + str(radius) + ".npy")
     
@@ -150,22 +156,67 @@ def verifier(conf: Dict[str, Union[str, bool, int, float]], cluster_path: str, d
     if not os.path.exists(cluster_path):
         print("start making cluster model ...")
         cluster = cluster_init(state_num=conf['state_num'])
-        FFTList = np.load(FFT_path)
-        data = []
         cap = cv2.VideoCapture(conf['video_path'])
-        _, f_prev = cap.read()
-        idx = 0
-        data.append([0, FFTList[idx]])
-        while True :
-            idx += 1
-            ret, f_cur = cap.read()
-            if not ret :
-                cap.release()
-                break
-            data.append([get_MSE(f_prev, f_cur), FFTList[idx]])
-            f_prev = f_cur            
+        
+        if conf['state_method'] == 0:
+            FFTList = np.load(FFT_path)
+            data = []
+            _, f_prev = cap.read()
+            idx = 0
+            data.append([0, FFTList[idx]])
+            while True :
+                idx += 1
+                ret, f_cur = cap.read()
+                if not ret :
+                    cap.release()
+                    break
+                data.append([get_MSE(f_prev, f_cur), FFTList[idx]])
+                f_prev = f_cur
+        
+        
+        elif conf['state_method'] == 1:
+            FFTList = np.load(FFT_path)
+            frame_count = 0
+            frame_list = []
+            data = []
+            idx = 0
+            while True :
+                ret, frame = cap.read()
+                if not ret :
+                    cap.release()
+                    break
+                
+                frame_count += 1
+                frame_list.append(frame)
+                if len(frame_list) > conf['action_dim']:    
+                    for k in range(1, conf['action_dim']+1):
+                        data.append([get_MSE(frame_list[0], frame_list[k]), FFTList[idx+k]])
+                    frame_list.pop(0)
+                idx += conf["action_dim"]
+
+        
+        elif conf['state_method'] == 2:
+            frame_count = 0
+            frame_list = []
+            data = []
+            idx = 0
+            while True :
+                ret, frame = cap.read()
+                if not ret :
+                    cap.release()
+                    break
+                
+                frame_count += 1
+                frame_list.append(frame)
+                if len(frame_list) > conf['action_dim']:    
+                    for k in range(1, conf['action_dim']+1):
+                        data.append([get_MSE(frame_list[0], frame_list[k]), get_MSE(frame_list[k-1], frame_list[k])])
+                    frame_list.pop(0)
+                idx += conf["action_dim"]
+        
         cluster = cluster_train(cluster, np.array(data), cluster_path)
         print("finish making cluster model !\n")
+
 
 def input_with_timeout(timeout):
     start_time = time.time()
@@ -188,7 +239,7 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
     if not conf['omnet_mode'] and conf['is_masking'] :
         assert True, "if you want masking mode, omnet mode must be set to True"
     start_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S") 
-    cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'], conf["radius"])
+    cluster_path, detection_path, FFT_path = path_manager(conf['video_path'], conf['state_num'], conf["radius"], conf["state_method"], conf["action_dim"])
     verifier(conf, cluster_path, detection_path, FFT_path)
     log_path, save_path, name = logging_mannager(start_time, conf, default_conf)
     if not conf['debug_mode'] :
