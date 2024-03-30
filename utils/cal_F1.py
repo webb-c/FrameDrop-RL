@@ -10,7 +10,8 @@ def _parse_results(filename):
         for line in file :
             line = line.strip().split()
             x, y, w, h = map(float, line[1:5])
-            labels.append((x, y, w, h))
+            c = int(line[0])
+            labels.append((c, x, y, w, h))
     return labels
 
 
@@ -31,12 +32,16 @@ def _cal_F1(filePred, skipFilePred, threshold=0.5):
         return 0.0
     
     for fPred in filePred:
-        fx, fy, fw, fh = fPred
+        fc, fx, fy, fw, fh = fPred
         fArea = fw * fh
         
         maxIOU = 0.0
         for sPred in skipFilePred:
-            sx, sy, sw, sh = sPred
+            sc, sx, sy, sw, sh = sPred
+            
+            if fc != sc:
+                continue
+
             sArea = sw * sh
             
             interArea = max(0, min(fx + fw, sx + sw) - max(fx, sx)) * max(0, min(fy + fh, sy + sh) - max(fy, sy))
