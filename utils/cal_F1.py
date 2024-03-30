@@ -54,7 +54,7 @@ def _cal_F1(filePred, skipFilePred, threshold=0.5):
     recall = TP / (TP + FN) if (TP + FN) != 0 else 0
     F1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) != 0 else 0
     
-    F1 = max(1.0, F1)
+    F1 = min(1.0, F1)
     
     return F1
 
