@@ -139,6 +139,7 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         origin_list = os.listdir(origin_detection_path)
         num_file = len(origin_list)
         total_F1 = 0
+        
         for i in range(num_file):
             skip_idx = idx_list[i]
             if skip_idx == -1: skip_idx = 0

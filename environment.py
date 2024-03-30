@@ -201,7 +201,7 @@ class Environment():
                 self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug_mode)
                 
         if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_test'], conf['write'])
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['f1_test'], conf['output_path'], conf['write'])
         else:
             # training (reward) argument
             self.reward_method = conf['reward_method']
