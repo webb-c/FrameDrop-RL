@@ -53,7 +53,8 @@ def test(conf, start_time, writer):
     if not conf['omnet_mode'] and conf['is_masking'] :
         assert True, "if you want masking mode, omnet mode must be set to True"
     env = Environment(conf, run=True)
-    agent = Agent(conf, run=True)
+    if conf["using_RL"]:
+        agent = Agent(conf, run=True)
     done = False
     print("Ready ...")
     s = env.reset()
@@ -70,7 +71,7 @@ def test(conf, start_time, writer):
         if conf["using_RL"]:
             a = agent.get_action(s, require_skip, False)
         else:
-            a = 0    
+            a = 0
         
         if conf['omnet_mode']:
             A_list.append(env.target_A)
@@ -106,7 +107,8 @@ def test(conf, start_time, writer):
     A = 0
     if conf['omnet_mode']:
         A = env.sum_A
-    return env.sum_a, A, finish_time, rounded_fraction, conf
+    
+    return env.sum_a, A, finish_time, rounded_fraction, s, conf
 
 
 
@@ -123,46 +125,48 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
         writer = None
     prnt(conf)
     
-    a, A, finish_time, rounded_fraction, conf = test(conf, start_time, writer)
+    a, A, finish_time, rounded_fraction, idx_list, conf = test(conf, start_time, writer)
     conf['fraction'] = rounded_fraction
     
-    if conf['f1_score'] and conf["using_RL"] :
+    if conf['f1_test'] and conf["using_RL"] :
         root_detection =  "./data/detect/test/"
         video_name = re.split(r"[/\\]", conf['video_path'])[-1].split(".")[0]
-        model_name = re.split(r"[/\\]", conf['model_path'])[-1].split(".")[0]
-        
         origin_detection_path = os.path.join(root_detection, video_name + "/labels")
         if not os.path.exists(origin_detection_path):
             command = ["--weights", "models/yolov5s6.pt", "--source", conf['video_path'], "--project", root_detection, "--name", video_name, "--save-txt", "--save-conf", "--nosave"]
             inference(command)
         
-        skip_detection_path = os.path.join(root_detection, conf['output_path'] + "/labels")
-        if not os.path.exists(skip_detection_path):
-            command = ["--weights", "models/yolov5s6.pt", "--source", conf['output_path'], "--project", root_detection, "--name", conf['output_path'], "--save-txt", "--save-conf", "--nosave"]
-            inference(command)
-        
         origin_list = os.listdir(origin_detection_path)
-        skip_list = os.listdir(skip_detection_path)
-        num_file = min(len(origin_list), len(skip_list))
+        num_file = len(origin_list)
         total_F1 = 0
         for i in range(num_file):
-            origin, skip = origin_list[i], skip_list[i]
+            skip_idx = idx_list[i]
+            if skip_idx == -1: skip_idx = 0
+            
+            origin, skip = origin_list[i], origin_list[skip_idx]
             origin_file = os.path.join(origin_detection_path, origin)
-            skip_file = os.path.join(skip_detection_path, skip)
+            skip_file = os.path.join(origin_detection_path, skip)
             F1_score = get_F1(origin_file, skip_file)
+            
+            if writer is not None:
+                writer.add_scalar("F1_score/changes", F1_score, i)
             total_F1 += F1_score
         
         if writer is not None:
             writer.add_scalar("F1_score/total", total_F1, 1)
-            writer.add_scalar("F1_score/average", total_F1/len(origin_list), 1)
+            writer.add_scalar("F1_score/average", total_F1/num_file, 1)
         
-        conf['f1_score'] = total_F1/len(origin_list)
+        conf['f1_score'] = total_F1/num_file
     
     print("Testing Finish with...")
     prnt(conf)
     print("\n✱ start time :\t", start_time)
     print("✱ finish time :\t", finish_time)
 
+
+    # print("\n===== Idx List =====")
+    # print(idx_list)
+    
     print("\n===== Networks =====")
     print("✲ Σa(t) :\t", a)
     print("✲ ΣA(t) :\t", A)
@@ -170,12 +174,12 @@ def main(conf:Dict[str, Union[str, int, bool, float]]) -> bool:
     print("\n===== Fractions =====")
     print("✲ processed frame rate :\t", rounded_fraction)
 
-    if conf['f1_score'] :
+    if conf['f1_test'] :
         print("\n=====  F1 score =====")
         print("✲ total F1 score: ", total_F1)
         print("✲ average F1 score: ", total_F1/len(origin_list))
     
-    if not conf['debug_mode']:
+    if not conf['debug_mode'] and conf['using_RL']:
         save_parameters_to_csv(start_time, conf, train=False)
         print("\nsaving config is finished.")
     

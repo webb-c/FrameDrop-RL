@@ -1,4 +1,5 @@
 import os
+import re
 import csv
 import argparse
 from typing import Tuple, Union, Dict
@@ -34,7 +35,7 @@ def save_parameters_to_csv(start_time: str, conf: Dict[str, Union[str, int, bool
     if train:
         new_row = [start_time] + [str(conf[key]) for key in conf.keys()]
     else:
-        new_row = [start_time] + [str(conf[key]) for key in desired_keys if key in conf]
+        new_row = [start_time] + [re.split(r"[/\\]", conf['video_path'])[-1][:-4]] + [str(conf[key]) for key in desired_keys if key in conf]
     
     existing_data.append(new_row)
 

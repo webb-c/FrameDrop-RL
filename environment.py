@@ -62,49 +62,35 @@ class ReplayBuffer():
 class VideoProcessor():
     """영상을 프레임단위로 읽어들이거나 내보내기 위한 관리자
     """
-    def __init__(self, video_path: str, fps: int, action_dim: int, output_path: str=None, f1_score: bool=True, write:bool=False, img:bool=False) :
+    def __init__(self, video_path: str, fps: int, action_dim: int, f1_test: bool, output_path: str=None, write:bool=False) :
         """init
         
         Args:
             video_path: 학습/테스트에 사용할 영상의 경로
             fps: 영상의 fps
             output_path: 테스트시 skip한 영상을 내보낼 경로
-            f1_score: f1_score 테스트를 위한 영상인가?
+            f1_test: f1_test 테스트를 위한 영상인가?
             write: 처리된 영상을 생성할 것인가?
         """
-        self.img = img
         self.video_path = video_path
         self.output_path = output_path
         self.fps = fps
         self.action_dim = action_dim
-        self.f1_score = f1_score
+        self.f1_test = f1_test
         self.write = write
         self.cap = cv2.VideoCapture(self.video_path)
-        self.processed_frames = []
+        self.processed_frames_index = []
         self.num_all, self.num_processed = 0, 0
-        self.frame_list = []
         
-        if self.img:            
-            while True:
-                ret, f = self.cap.read()
-                if not ret:
-                    break
-                self.frame_list.append(f)
-            
-            self.frame_num = len(self.frame_list)
-            self.cap.release()
     
     
     def reset(self):
         """학습에 반복적으로 사용하기 위해 VideoCapture를 초기화한다.
         """
-        if self.img:
-            print(self.frame_num)
-            f_init = self.frame_list[0]
-        else:
-            self.cap.release()
-            self.cap = cv2.VideoCapture(self.video_path)
-            _, f_init = self.cap.read()
+
+        self.cap.release()
+        self.cap = cv2.VideoCapture(self.video_path)
+        _, f_init = self.cap.read()
         
         self.prev_frame, self.cur_frame, self.last_skip_frame = f_init, f_init, f_init
         self.idx = 0
@@ -114,8 +100,7 @@ class VideoProcessor():
             frame_shape = f_init.shape[:2]
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             self.out = cv2.VideoWriter(self.output_path, fourcc, self.fps, (frame_shape[1], frame_shape[0]))
-            self.out.write(f_init)
-    
+
     
     def read_video(self, skip:int) -> bool:
         """주어진 skip길이만큼 skip한 뒤, 나머지 영상은 저장한다.
@@ -126,35 +111,41 @@ class VideoProcessor():
         Returns:
             bool: 영상이 끝났는가?
         """
+        # print("\n===== Read VIDEO (called in index "+ str(self.idx) +" =====)")
         skip_frame = self.prev_frame
+        skip_idx = self.idx - 1
         for _ in range(skip):
-            self.prev_frame = self.cur_frame
             
+            if self.f1_test:
+                self.processed_frames_index.append(skip_idx)
+                if self.write:
+                    self.out.write(skip_frame)
+                
+            self.prev_frame = self.cur_frame
             ret, self.cur_frame = self.cap.read()
             if not ret :
                 if self.write:
                     self.out.release()
                 return False
             
-            if self.f1_score and self.write:
-                self.out.write(skip_frame)
-
             self.idx += 1
             self.num_all += 1
 
-        self.last_skip_frame = self.cur_frame
-        
+
+        self.last_skip_frame = self.prev_frame
         for _ in range(self.action_dim - skip):
-            self.prev_frame = self.cur_frame
             
+            if self.f1_test:
+                self.processed_frames_index.append(self.idx)
+                if self.write:
+                    self.out.write(self.cur_frame)
+
+            self.prev_frame = self.cur_frame
             ret, self.cur_frame = self.cap.read()
             if not ret : 
                 if self.write:
                     self.out.release()
                 return False
-            
-            if self.write:
-                self.out.write(self.cur_frame)
             
             self.idx += 1
             self.num_all += 1
@@ -195,7 +186,6 @@ class Environment():
         self.debug_mode = conf['debug_mode']
         
         self.threshold = conf['threshold']
-        self.target_f1 = conf['target_f1']
         
         self.radius = conf['radius']
         self.state_num = conf['state_num']
@@ -211,7 +201,7 @@ class Environment():
                 self.omnet = Communicator("\\\\.\\pipe\\frame_drop_rl_"+str(conf['pipe_num']), 200000, self.debug_mode)
                 
         if self.run:
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_score'], write=conf['f1_score'])
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], conf['output_path'], conf['f1_test'], conf['write'])
         else:
             # training (reward) argument
             self.reward_method = conf['reward_method']
@@ -322,6 +312,9 @@ class Environment():
         done = False
         ret = self.video_processor.read_video(skip=action)
         if not ret:
+            if self.run:
+                idx_list = self.video_processor.processed_frames_index
+                return idx_list, 0, True
             return self.state, 0, True
         
         new_A = -1
@@ -540,22 +533,6 @@ class Environment():
                 print("Important score status", score_sum)
                 print()
             
-        elif self.reward_method[0] == '2':
-            last_idx = self.idx - self.action_dim-1
-            process_idx = self.idx - self.action_dim+a+1
-            f1 = get_F1_with_idx(last_idx, process_idx, self.video_processor.video_path)
-            # print(f1)
-            if f1 < self.target_f1 :
-                r = -1 * minus_beta * sum(important_list[:a+1])/minus_div
-            else :
-                r = skip_weight * plus_beta * sum(important_list[a+1:])/plus_div
-
-            if self.debug_mode and self.reward_print_count < 10:
-                self.reward_print_count += 1
-                print("method 2:", r)
-                print("F1 score status", f1)
-                print()
-        
         self.trans_list.append(r)
         self.reward_sum += r
         

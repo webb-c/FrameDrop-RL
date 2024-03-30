@@ -336,9 +336,9 @@ def main(conf: Dict[str, Union[str, bool, int, float]], default_conf: Dict[str, 
             if epi == 0 or (epi % 50) == 0:
                 agent.show_qtable()
                 env.show_trans()
-                if not conf["debug_mode"]:
-                    path = save_name_mannager(epi, name)
-                    agent.save_model(path)
+                # if not conf["debug_mode"]:
+                #    path = save_name_mannager(epi, name)
+                #    agent.save_model(path)
             
             if conf['omnet_mode']:
                 env.omnet.get_omnet_message()

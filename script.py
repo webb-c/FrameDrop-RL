@@ -20,7 +20,8 @@ for entry in os.listdir(searchdir):
         except ValueError:
             is_epi = False
         
-        if date > "240321-220451":
+        # 240329-153000
+        if date > "240327-130731":
             if not is_epi:
                 if dataset == "JK":
                     test_dataset = ["JK-1", "JK-2"]

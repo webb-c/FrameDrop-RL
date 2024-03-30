@@ -23,9 +23,7 @@ def parse_common_args() :
     parser.add_argument("-a", "--action_dim", type=int, default=30, help="skipping action Number")
     
     #TODO: hyperparameter: action, radius, beta, threshold, f1score, V
-    parser.add_argument("-t", "--threshold", type=float, default=0.0, help="target value for reward +- (in 1)")
-    parser.add_argument("-f", "--target_f1", type=float, default=0.7, help="target f1 score for reward +- (in 2)")
-    
+    parser.add_argument("-t", "--threshold", type=float, default=0.0, help="target value for reward +- (in 1)")  
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     parser.add_argument("-V", "--V", type=float, default=100000000, help="trade off parameter between stability & accuracy")
     
@@ -79,12 +77,16 @@ def parse_train_args() -> Tuple[Dict[str, Union[str, bool, int, float]], Dict[st
 def parse_test_args() : 
     parser = argparse.ArgumentParser()
     
+    parser.add_argument("-learn", "--learn_method", type=str, default="Q", help="learning algorithm")
     parser.add_argument("-video", "--video_path", type=str, default=None, help="testing video path")
     parser.add_argument("-fps", "--fps", type=int, default=30, help="frame per sec")
     parser.add_argument("-model", "--model_path", type=str, default=None, help="trained model path")
     parser.add_argument("-mask", "--is_masking", type=str2bool, default=True, help="using lyapunov based guide?")
+    
+    parser.add_argument("-write", "--write", type=str2bool, default=False, help="make output video?")
     parser.add_argument("-out", "--output_path", type=str, default=None, help="output video Path")
-    parser.add_argument("-f1", "--f1_score", type=str2bool, default=True, help="showing f1 score")
+    parser.add_argument("-f1", "--f1_test", type=str2bool, default=True, help="showing f1 score")
+    
     parser.add_argument("-print", "--print_network", type=str2bool, default=False, help="cmd print log")
     parser.add_argument("-r", "--radius", type=int, default=60, help="used to calculate blurring score")
     parser.add_argument("-s", "--state_num", type=int, default=15, help="clustering state Number")
@@ -92,8 +94,7 @@ def parse_test_args() :
     
     # may... -i == __1 : 0에서 1사이 / 0.3? | -i == __0 : 0.0
     parser.add_argument("-t", "--threshold", type=float, default=0.0, help="target value for reward +- (in 1)")
-    parser.add_argument("-f", "--target_f1", type=float, default=0.7, help="target f1 score for reward +- (in 2)")
-    
+        
     parser.add_argument("-pipe", "--pipe_num", type=int, default=1, help="number of pipe that use to connect with omnet")
     # model_1: 100000000 | SLN: 50 | YOLO: 
     parser.add_argument("-V", "--V", type=float, default=100000, help="trade off parameter between stability & accuracy")
@@ -116,13 +117,14 @@ def parse_test_args() :
 
 def add_args(conf):
     model_path = conf['model_path']
-    assert model_path is not None, "model_path is None."
+    if conf["using_RL"]:
+        assert model_path is not None, "model_path is None."
 
-    method = re.split(r"[/\\]", model_path)[-2].split(".")[0]
-    if method == 'weight':
-        conf['learn_method'] = 'PPO'
-    else:
-        conf['learn_method'] = 'Q'
+    # method = re.split(r"[/\\]", model_path)[-2].split(".")[0]
+    # if method == 'weight':
+    #    conf['learn_method'] = 'PPO'
+    # else:
+    #    conf['learn_method'] = 'Q'
     
     if conf['learn_method'] == 'Q':
         default_values = {
@@ -164,7 +166,8 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         'threshold': 'thresh',
         'statemethod' : 'state',
         'radius': 'r',
-        'epsdec': 'e'
+        'epsdec': 'e',
+        'actiondim': 'a'
     }
     
     for i in range(1, len(parts), 2):
@@ -172,6 +175,8 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         value = parts[i+1]
         if key == 'statenum': 
             conf['state_num'] = int(value)
+        if key == 'statemethod': 
+            conf['state_method'] = int(value)
         if key == 'videopath':
             cluster_video_name = value
         if key == 'actiondim':
@@ -198,7 +203,10 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         log_name += "_agent_"+str(conf["pipe_num"])
 
     conf["log_path"] = os.path.join(root_log, log_name)
-    conf["output_path"] = os.path.join(root_output, start_time + ".mp4")
+    
+    if conf["write"]:
+        if conf['output_path'] is None:
+            conf["output_path"] = os.path.join(root_output, start_time + ".mp4")
     #log_path = os.path.join(root_log, start_time + "_" + output_name)
     
     return conf, conf["log_path"]
