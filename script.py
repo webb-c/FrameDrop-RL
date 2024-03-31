@@ -3,7 +3,7 @@ import os
 
 
 
-searchdir = "D:/VSC/INFOCOM/FrameDrop-RL/models/ndarray/new"
+searchdir = "D:/VSC/INFOCOM/FrameDrop-RL/models/ndarray"
 
 for entry in os.listdir(searchdir):
     if os.path.isfile(os.path.join(searchdir, entry)):
@@ -13,7 +13,7 @@ for entry in os.listdir(searchdir):
         date = conf_list[0]
         dataset = conf_list[2]
         
-        if date > "240328-140300":
+        if date > "240331-140000":
             if dataset == "JK":
                 test_dataset = ["JK-1"]
             elif dataset == "SD":
@@ -22,5 +22,5 @@ for entry in os.listdir(searchdir):
                 test_dataset = ["JN"]
             
             for data in test_dataset:
-                command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/new/{filename} -mask f -f1 t"
+                command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/{filename} -mask f -f1 t"
                 os.system(command)

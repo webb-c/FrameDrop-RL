@@ -208,7 +208,7 @@ class Environment():
             self.important_method = conf['important_method']
             self.beta = conf['beta']
             self.window = conf['window']
-            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'])
+            self.video_processor = VideoProcessor(conf['video_path'], conf['fps'], conf['action_dim'], False)
             self.buffer = ReplayBuffer(conf['buffer_size'])
             self.__detect(conf['detection_path'], conf['FFT_path'])
         
