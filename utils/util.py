@@ -17,7 +17,7 @@ def str2bool(v) :
 
 
 def save_parameters_to_csv(start_time: str, conf: Dict[str, Union[str, int, bool, float]], train: bool):
-    desired_keys = ['model_path', 'fraction', 'f1_score', 'is_masking', 'V', 'network_name', 'pipe_num']
+    desired_keys = ['radius', 'action_dim', 'threshold', 'state_method', 'reward_method', 'fraction', 'f1_score', 'is_masking', 'V', 'network_name', 'pipe_num', 'model_path']
     
     if train:
         csv_file_path = 'train_config.csv'
