@@ -60,6 +60,7 @@ class Agent():
         if self.run :
             temp = copy.deepcopy(self.qtable[s, :])
             temp_vec = temp.flatten()
+            # print(temp_vec)
             while True :
                 action = np.argmax(temp_vec)
                 if action >= require_skip :

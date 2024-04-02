@@ -523,9 +523,15 @@ class Environment():
             # score_sum = plus_beta*sum(important_list[a+1:]) - minus_beta*sum(important_list[:a+1])
             # score_sum = sum(important_list)
             if score_sum < self.threshold:
-                r = -1 * minus_beta * sum(important_list[:a+1])/minus_div
+                if score_sum < 0:
+                    r = minus_beta * sum(important_list[:a+1])/minus_div
+                else:
+                    r = -1 * minus_beta * sum(important_list[:a+1])/minus_div
             else :
-                r = skip_weight * plus_beta * sum(important_list[a+1:])/plus_div
+                if score_sum < 0:
+                    r = -1 * skip_weight * plus_beta * sum(important_list[a+1:])/plus_div
+                else:
+                    r = skip_weight * plus_beta * sum(important_list[a+1:])/plus_div
             
             if self.debug_mode and self.reward_print_count < 10:
                 self.reward_print_count += 1
@@ -555,7 +561,7 @@ class Environment():
 
 
 class Communicator(Exception):
-    """imnet과의 통신을 위해 사용합니다.
+    """OMNeT과의 통신을 위해 사용합니다.
 
     Args:
         Exception (_type_)

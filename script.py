@@ -13,7 +13,7 @@ for entry in os.listdir(searchdir):
         date = conf_list[0]
         dataset = conf_list[2]
         
-        if date > "240331-140000":
+        if date > "240401-140000":
             if dataset == "JK":
                 test_dataset = ["JK-1"]
             elif dataset == "SD":

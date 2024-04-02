@@ -171,6 +171,7 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
     }
     
     for i in range(1, len(parts), 2):
+        print(parts)
         key = parts[i]
         value = parts[i+1]
         if key == 'statenum': 

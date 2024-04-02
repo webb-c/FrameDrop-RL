@@ -64,24 +64,28 @@ def test(conf, start_time, writer):
     while not done:
         # print(step, env.video_processor.idx)
         if conf['is_masking'] :
-            require_skip = conf['fps'] - env.target_A
+            require_skip = conf['action_dim'] - env.target_A
+            if conf["debug_mode"]:
+                print("require_skip", require_skip)
         else :
             require_skip = 0
         
         if conf["using_RL"]:
             a = agent.get_action(s, require_skip, False)
+            if conf["debug_mode"]:
+                print("action", a)
         else:
             a = 0
         
         if conf['omnet_mode']:
             A_list.append(env.target_A)
         u_list.append(a)
-        a_list.append(conf['fps']-a)
+        a_list.append(conf['action_dim']-a)
         if writer is not None:
             if conf['omnet_mode']:
-                writer.add_scalar("Network/Diff", (env.target_A - (conf['fps']-a)), step)
+                writer.add_scalar("Network/Diff", (env.target_A - (conf['action_dim']-a)), step)
                 writer.add_scalar("Network/target_A(t)", env.target_A, step)
-            writer.add_scalar("Network/send_a(t)", conf['fps']-a, step)
+            writer.add_scalar("Network/send_a(t)", conf['action_dim']-a, step)
         s, _, done = env.step(a)
         step += 1
     
