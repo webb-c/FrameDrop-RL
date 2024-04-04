@@ -324,12 +324,12 @@ class Environment():
                     self.omnet.get_omnet_message()
                     self.omnet.send_omnet_message("action")
                     self.omnet.get_omnet_message()
-                    self.omnet.send_omnet_message(str((action+1)/self.action_dim))
+                    self.omnet.send_omnet_message(str((action+1)/self.fps))
                 elif a > action : 
                     self.omnet.get_omnet_message()
                     self.omnet.send_omnet_message("action")
                     self.omnet.get_omnet_message()
-                    self.omnet.send_omnet_message(str((1)/self.action_dim))
+                    self.omnet.send_omnet_message(str((1)/self.fps))
             
             self.omnet.get_omnet_message()
             self.omnet.send_omnet_message("reward") 
@@ -340,6 +340,7 @@ class Environment():
             new_A = math.floor(ratio_A*(self.action_dim))
             if self.debug_mode:
                 print("path cost:", path_cost)
+                print("V:", self.V)
                 print("scaling cost using V (V/path_cost):", ratio_A)
                 print("arrival rate using fps:", new_A)
         

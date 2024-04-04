@@ -91,7 +91,7 @@ def test(conf, start_time, writer):
     
     if conf['omnet_mode']:
         env.omnet.get_omnet_message()
-        env.omnet.send_omnet_message("finish")
+        env.omnet.send_omnet_message("terminal")
         env.omnet.close_pipe()
     
     finish_time = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
