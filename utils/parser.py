@@ -213,5 +213,5 @@ def parse_test_name(conf:Dict[str, Union[str, int, bool, float]], start_time:str
         if conf['output_path'] is None:
             conf["output_path"] = os.path.join(root_output, start_time + ".mp4")
     #log_path = os.path.join(root_log, start_time + "_" + output_name)
-    
+
     return conf, conf["log_path"]

@@ -35,6 +35,8 @@ pre-trained models option :
 
 import os
 import re
+import signal
+import sys
 import numpy as np
 from pyprnt import prnt
 import datetime
@@ -61,21 +63,52 @@ def test(conf, start_time, writer):
     a_list, u_list, A_list = [], [], []
     
     step = 0
+    if not conf["using_RL"]:
+        if conf['pipe_num'] % 3 == 1 :
+            # fraction: 0.3
+            traffic_interval = 15 * (conf['fps'] // conf['action_dim'])           # 20s -> 15s | ... 16s
+            traffic_count = 10 * (conf['fps'] // conf['action_dim'])              # 10s | ... 9s
+        elif conf['pipe_num'] % 3 == 0:
+            # fraction: 0.5
+            traffic_interval = 25 * (conf['fps'] // conf['action_dim'])             # 30s -> 25s | ... 25s
+            traffic_count = 15 * (conf['fps'] // conf['action_dim'])                # 15s | ... 13s
+    
+    #! Handler 등록
+    def handler(signum, frame):
+        print('Ctrl+C가 눌렸습니다. omnet을 종료합니다..')
+        if conf['omnet_mode']:
+            env.omnet.get_omnet_message()
+            env.omnet.send_omnet_message("terminal")
+            env.omnet.close_pipe()
+        
+        print("SEND TERMINAL COMPLETE!\n")
+        sys.exit(0)
+            
+    signal.signal(signal.SIGINT, handler)
+    
+    count = 100000
     while not done:
         # print(step, env.video_processor.idx)
+        
         if conf['is_masking'] :
             require_skip = conf['action_dim'] - env.target_A
             if conf["debug_mode"]:
                 print("require_skip", require_skip)
-        else :
-            require_skip = 0
+        else:
+            require_skip = -1
         
         if conf["using_RL"]:
             a = agent.get_action(s, require_skip, False)
             if conf["debug_mode"]:
                 print("action", a)
         else:
-            a = 0
+            a = conf["action_dim"]
+            if step % traffic_interval == 0 and step != 0:      
+                print("Traffic Occur in ", step, "!!!")
+                count = 0
+            if count <= traffic_count:
+                a = 0
+                count += 1
         
         if conf['omnet_mode']:
             A_list.append(env.target_A)

@@ -50,7 +50,7 @@ def path_manager(video_path: str, state_num: int, radius: int, state_method: int
     Returns:
         Tuple[cluster_path, detection_path, FFT_path]
     """
-    root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/train/", "./data/FFT/"
+    root_cluster, root_detection, root_FFT = "./models/cluster/", "./data/detect/train/", "./data/FFT/test/"
     video_name = re.split(r"[/\\]", video_path)[-1].split(".")[0]
     cluster_video_name = video_name.replace("_", "")
     if state_method == 0:

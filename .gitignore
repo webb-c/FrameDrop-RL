@@ -16,6 +16,7 @@ results/*
 .vscode/
 config.csv
 
+yolo/results/*
 *.csv
 *.sh
 omnet_tester.ipynb

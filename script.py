@@ -24,3 +24,5 @@ for entry in os.listdir(searchdir):
             for data in test_dataset:
                 command = f"python run.py -video ../DATASET/test/{data}.mp4 -model models/ndarray/{filename} -mask f -f1 t"
                 os.system(command)
+                
+                
